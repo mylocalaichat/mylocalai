@@ -15,13 +15,10 @@ This application runs AI locally on your machine using Ollama. It's open source 
 ## Quick Start
 
 1. **Install Ollama**
-   ```bash
-   # macOS
-   brew install ollama
 
-   # Linux
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
+   Download and install Ollama from the official website:
+   - **macOS/Windows/Linux**: Visit https://ollama.com and download the installer for your operating system
+   - Follow the installation instructions for your platform
 
 2. **Start Ollama and install a model**
    ```bash

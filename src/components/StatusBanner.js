@@ -95,7 +95,7 @@ const StatusBanner = () => {
 
   const dismissDataBanner = () => {
     setShowDataBanner(false);
-    localStorage.setItem('vibesync_data_banner_dismissed', 'true');
+    localStorage.setItem('mylocalai_data_banner_dismissed', 'true');
   };
 
   const formatLastChecked = (date) => {
@@ -112,7 +112,7 @@ const StatusBanner = () => {
   };
 
   useEffect(() => {
-    const dismissed = localStorage.getItem('vibesync_data_banner_dismissed');
+    const dismissed = localStorage.getItem('mylocalai_data_banner_dismissed');
     if (dismissed) {
       setShowDataBanner(false);
     }

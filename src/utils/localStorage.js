@@ -1,9 +1,9 @@
-// Browser storage utility for VibeSync chat application
+// Browser storage utility for MyLocalAI chat application
 // Replaces PostgreSQL database with localStorage
 const STORAGE_KEYS = {
-  CONVERSATIONS: 'vibesync_conversations',
-  MESSAGES: 'vibesync_messages',
-  CONVERSATION_COUNTER: 'vibesync_conversation_counter'
+  CONVERSATIONS: 'mylocalai_conversations',
+  MESSAGES: 'mylocalai_messages',
+  CONVERSATION_COUNTER: 'mylocalai_conversation_counter'
 };
 
 export const storageUtils = {

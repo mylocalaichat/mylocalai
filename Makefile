@@ -1,4 +1,4 @@
-# Makefile for vibesync React app with PostgreSQL backend
+# Makefile for mylocalai React app with PostgreSQL backend
 
 .PHONY: dev build clean install backend frontend db-setup help
 
@@ -35,22 +35,22 @@ backend-deps:
 db-setup:
 	@echo "Setting up PostgreSQL database..."
 	psql -h localhost -U $(shell whoami) -d postgres -c "\
-	CREATE SCHEMA IF NOT EXISTS vibesync; \
-	CREATE TABLE IF NOT EXISTS vibesync.conversations ( \
+	CREATE SCHEMA IF NOT EXISTS mylocalai; \
+	CREATE TABLE IF NOT EXISTS mylocalai.conversations ( \
 	  id SERIAL PRIMARY KEY, \
 	  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
 	  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP \
 	); \
-	CREATE TABLE IF NOT EXISTS vibesync.messages ( \
+	CREATE TABLE IF NOT EXISTS mylocalai.messages ( \
 	  id SERIAL PRIMARY KEY, \
-	  conversation_id INTEGER REFERENCES vibesync.conversations(id) ON DELETE CASCADE, \
+	  conversation_id INTEGER REFERENCES mylocalai.conversations(id) ON DELETE CASCADE, \
 	  content TEXT NOT NULL, \
 	  sender VARCHAR(20) NOT NULL CHECK (sender IN ('user', 'api')), \
 	  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
 	  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP \
 	); \
-	CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON vibesync.messages(conversation_id); \
-	CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON vibesync.messages(timestamp);"
+	CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON mylocalai.messages(conversation_id); \
+	CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON mylocalai.messages(timestamp);"
 	@echo "Database schema created successfully!"
 
 # Build for production
