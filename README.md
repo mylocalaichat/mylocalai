@@ -4,6 +4,8 @@ A React chat application that runs AI locally using Ollama. Open source and comp
 
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=flat&logo=github)](https://github.com/mylocalaichat/mylocalai)
 
+**[🎥 Watch Demo](https://youtu.be/g14zgT6INoA)**
+
 ## Philosophy
 
 This application runs AI locally on your machine using Ollama. It's open source and completely free to use.
