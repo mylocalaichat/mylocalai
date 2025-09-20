@@ -96,10 +96,15 @@ ${ollamaStatus.message}`;
     }
   };
 
+  const getOllamaUrl = () => {
+    return process.env.REACT_APP_OLLAMA_URL || 'http://localhost:11434';
+  };
+
   const checkOllamaStatus = async () => {
     try {
+      const ollamaUrl = getOllamaUrl();
       // Check if Ollama is running
-      const healthResponse = await fetch('http://localhost:11434/api/tags', {
+      const healthResponse = await fetch(`${ollamaUrl}/api/tags`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -124,6 +129,7 @@ ${ollamaStatus.message}`;
       return { success: true, models };
     } catch (error) {
       if (error.name === 'TypeError' || error.message.includes('fetch')) {
+        const ollamaUrl = getOllamaUrl();
         return {
           success: false,
           error: 'Connection failed',
@@ -146,7 +152,7 @@ ollama pull llama3.1:8b
 ollama list
 \`\`\`
 
-Make sure Ollama is running on http://localhost:11434`
+Make sure Ollama is running on ${ollamaUrl}`
         };
       } else if (error.message.includes('Model')) {
         return {
@@ -233,7 +239,8 @@ Please ensure Ollama is properly installed and running.`
       setStatus({ icon: '🤖', message: 'Waiting for LLM response', isLoading: true });
 
       // Call Ollama API
-      const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+      const ollamaUrl = getOllamaUrl();
+      const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
