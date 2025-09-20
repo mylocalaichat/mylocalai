@@ -17,12 +17,11 @@ This application runs AI locally on your machine using Ollama. It's open source 
 1. **Install Ollama**
 
    Download and install Ollama from the official website:
-   - **macOS/Windows/Linux**: Visit https://ollama.com and download the installer for your operating system
+   - **macOS/Windows/Linux**: Visit [https://ollama.com](https://ollama.com) and download the installer for your operating system
    - Follow the installation instructions for your platform
 
-2. **Start Ollama and install a model**
+2. **Install a model**
    ```bash
-   ollama serve
    ollama pull llama3.1:8b
    ```
 
