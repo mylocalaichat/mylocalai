@@ -121,8 +121,7 @@ const StatusBanner = () => {
           <div className="data-content">
             <div className="data-text">
               <span className="data-icon">⚠️</span>
-              <strong>Notice:</strong> Chats may be sent to server. No illegal prompts.
-              No signup required - no identifying info saved.
+              <strong>Notice:</strong> Chats may be sent to server. No illegal prompts
             </div>
             <button
               className="data-dismiss"
