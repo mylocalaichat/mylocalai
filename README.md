@@ -44,8 +44,11 @@ This application runs AI locally on your machine using Ollama. It's open source 
 
 ## Requirements
 
-- Node.js (v19 or higher)
-- Ollama installed locally
+- **Hardware**: MacBook Pro or equivalent computer with sufficient RAM and processing power to run Llama3.1:8b locally
+- **Software**:
+  - Node.js (v19 or higher)
+  - Ollama installed locally
+- **Recommended**: 16GB+ RAM for optimal performance with Llama3.1:8b
 
 ## Supported Models
 
