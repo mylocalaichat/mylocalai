@@ -11,14 +11,19 @@ const StatusBanner = () => {
   const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [showDataBanner, setShowDataBanner] = useState(true);
 
+  const getOllamaUrl = () => {
+    return process.env.REACT_APP_OLLAMA_URL || 'http://localhost:11434';
+  };
+
   const checkOllamaStatus = async () => {
     setOllamaStatus(prev => ({ ...prev, checking: true, error: null }));
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const ollamaUrl = getOllamaUrl();
 
-      const response = await fetch('http://localhost:11434/api/tags', {
+      const response = await fetch(`${ollamaUrl}/api/tags`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal
@@ -115,25 +120,6 @@ const StatusBanner = () => {
 
   return (
     <div className="status-banner-container">
-      {/* Data Notice Banner */}
-      {showDataBanner && (
-        <div className="data-banner">
-          <div className="data-content">
-            <div className="data-text">
-              <span className="data-icon">⚠️</span>
-              <strong>Notice:</strong> Chats may be sent to server. No illegal prompts
-            </div>
-            <button
-              className="data-dismiss"
-              onClick={dismissDataBanner}
-              title="Dismiss this notice"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Ollama Status */}
       <div className="ollama-status">
         <div className="status-content">
@@ -148,8 +134,19 @@ const StatusBanner = () => {
                 <span className="status-dot connected"></span>
                 <span>
                   Ollama Connected
+                  <button
+                    className="refresh-status inline"
+                    onClick={checkOllamaStatus}
+                    title="Refresh status"
+                    disabled={ollamaStatus.checking}
+                  >
+                    ↻
+                  </button>
                   {ollamaStatus.hasModel ? (
-                    <span className="model-info"> • {ollamaStatus.modelCount} model{ollamaStatus.modelCount !== 1 ? 's' : ''} available</span>
+                    <span className="model-info"> • {ollamaStatus.models && ollamaStatus.models.length > 0 ?
+                      (ollamaStatus.models.find(m => m.includes('llama3.1:8b')) ||
+                       ollamaStatus.models.find(m => m.includes('llama3.1')) ||
+                       ollamaStatus.models[0]) : 'Model available'}</span>
                   ) : (
                     <span className="model-warning"> • No compatible models found</span>
                   )}
@@ -181,17 +178,9 @@ const StatusBanner = () => {
                 onClick={toggleSetupGuide}
                 title="Show setup instructions"
               >
-                📋 Setup
+                ⚙ Setup
               </button>
             )}
-            <button
-              className="refresh-status"
-              onClick={checkOllamaStatus}
-              title="Refresh status"
-              disabled={ollamaStatus.checking}
-            >
-              🔄
-            </button>
           </div>
         </div>
       </div>
@@ -201,13 +190,13 @@ const StatusBanner = () => {
         <div className="setup-guide">
           <div className="setup-content">
             <div className="setup-header">
-              <h3>🚀 Ollama Setup Guide</h3>
+              <h3>⚡ Ollama Setup Guide</h3>
               <button
                 className="setup-close"
                 onClick={toggleSetupGuide}
                 title="Close setup guide"
               >
-                ✕
+                ×
               </button>
             </div>
 

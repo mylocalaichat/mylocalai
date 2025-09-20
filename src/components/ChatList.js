@@ -69,7 +69,7 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
     <div className={`chat-list ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="chat-list-header">
         <div className="chat-list-title">
-          <span className="chat-list-icon">💬</span>
+          <span className="chat-list-icon">◐</span>
           {!isCollapsed && <span className="title-text">Conversations</span>}
         </div>
         <div className="header-buttons">
@@ -87,7 +87,7 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
                 onClick={handleClearCache}
                 title="Clear all conversations"
               >
-                <span className="clear-icon">🗑️</span>
+                <span className="clear-icon">×</span>
               </button>
             </>
           )}
@@ -112,7 +112,7 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
             </div>
           ) : conversations.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon">💭</span>
+              <span className="empty-icon">○</span>
               <p>No conversations yet</p>
               <button
                 className="start-chat-button"

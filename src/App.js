@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ChatInterface from './components/ChatInterface';
 import ChatList from './components/ChatList';
 import StatusBanner from './components/StatusBanner';
@@ -66,7 +66,7 @@ ${ollamaStatus.message}`;
     }
   };
 
-  const loadMessages = async (convId) => {
+  const loadMessages = (convId) => {
     try {
       const dbMessages = storageUtils.getMessagesByConversation(convId);
       const formattedMessages = dbMessages.map(msg => ({
@@ -289,19 +289,16 @@ Please ensure Ollama is properly installed and running.`
     }
   };
 
-  const handleConversationSelect = async (convId) => {
+  const handleConversationSelect = useCallback((convId) => {
     if (convId === conversationId) return; // Already selected
 
     try {
-      setIsLoading(true);
       setConversationId(convId);
-      await loadMessages(convId);
+      loadMessages(convId);
     } catch (error) {
       console.error('Error switching conversation:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [conversationId]);
 
   const handleNewConversation = async (newConvId) => {
     try {
@@ -321,7 +318,7 @@ ${ollamaStatus.message}`;
       }
 
       await saveMessage(newConvId, welcomeMessage, 'api');
-      await loadMessages(newConvId);
+      loadMessages(newConvId);
     } catch (error) {
       console.error('Error creating new conversation:', error);
     } finally {
