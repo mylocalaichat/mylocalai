@@ -119,7 +119,7 @@ export async function googleSearch(
   } = options;
 
   // Ignore incoming headless parameter, always start in headless mode
-  let useHeadless = false;
+  let useHeadless = true;
 
   logger.info({ options }, "Initializing browser...");
 
