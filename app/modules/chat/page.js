@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react';
 import ChatInterface from './components/ChatInterface';
 import ChatList from './components/ChatList';
@@ -5,7 +7,7 @@ import StatusBanner from './components/StatusBanner';
 import { storageUtils } from './utils/localStorage';
 import './App.css';
 
-function App() {
+export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +99,7 @@ ${ollamaStatus.message}`;
   };
 
   const getOllamaUrl = () => {
-    return process.env.REACT_APP_OLLAMA_URL || 'http://localhost:11434';
+    return process.env.NEXT_PUBLIC_OLLAMA_URL || process.env.OLLAMA_URL || 'http://localhost:11434';
   };
 
   const checkOllamaStatus = async () => {
@@ -217,7 +219,6 @@ Please ensure Ollama is properly installed and running.`
         if (errorMessage) {
           setMessages(prev => [...prev, errorMessage]);
         }
-        setTimeout(() => setStatus(null), 3000);
         return;
       }
 
@@ -270,7 +271,6 @@ Please ensure Ollama is properly installed and running.`
 
       // Update status - completed
       setStatus({ icon: '✅', message: 'Response complete', isLoading: false });
-      setTimeout(() => setStatus(null), 2000);
 
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
@@ -285,7 +285,6 @@ Please ensure Ollama is properly installed and running.`
         setMessages(prev => [...prev, errorMessage]);
       }
 
-      setTimeout(() => setStatus(null), 5000);
     }
   };
 
@@ -368,5 +367,3 @@ ${ollamaStatus.message}`;
     </div>
   );
 }
-
-export default App;
