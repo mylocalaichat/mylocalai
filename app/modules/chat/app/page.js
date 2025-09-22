@@ -12,6 +12,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [status, setStatus] = useState(null);
+  const [debugData, setDebugData] = useState(null);
 
   // Initialize conversation on app load
   useEffect(() => {
@@ -101,9 +102,28 @@ ${ollamaStatus.message}`;
     return process.env.NEXT_PUBLIC_OLLAMA_URL || process.env.OLLAMA_URL || 'http://localhost:11434';
   };
 
+  const addDebugEvent = (type, message, details = null, functionName = null, args = null) => {
+    setDebugData({
+      type,
+      message,
+      details,
+      functionName,
+      args,
+      timestamp: Date.now() // Add timestamp to force re-render
+    });
+  };
+
   const checkOllamaStatus = async () => {
     try {
       const ollamaUrl = getOllamaUrl();
+
+      // Log status check start
+      addDebugEvent('info', 'Checking Ollama status',
+        { url: `${ollamaUrl}/api/tags` },
+        'checkOllamaStatus',
+        { endpoint: 'api/tags' }
+      );
+
       // Check if Ollama is running
       const healthResponse = await fetch(`${ollamaUrl}/api/tags`, {
         method: 'GET',
@@ -111,11 +131,23 @@ ${ollamaStatus.message}`;
       });
 
       if (!healthResponse.ok) {
+        addDebugEvent('error', 'Ollama status check failed',
+          { status: healthResponse.status, statusText: healthResponse.statusText },
+          'checkOllamaStatus',
+          { url: `${ollamaUrl}/api/tags` }
+        );
         throw new Error('Ollama service not responding');
       }
 
       const data = await healthResponse.json();
       const models = data.models || [];
+
+      // Log successful status check
+      addDebugEvent('success', 'Ollama status check successful',
+        { modelsFound: models.length, models: models.map(m => m.name) },
+        'checkOllamaStatus',
+        { availableModels: models.length }
+      );
 
       // Check if required model is available
       const requiredModel = 'llama3.1:8b';
@@ -241,19 +273,34 @@ Please ensure Ollama is properly installed and running.`
 
       // Call Ollama API
       const ollamaUrl = getOllamaUrl();
+      const requestBody = {
+        model: 'llama3.1:8b',
+        prompt: fullPrompt,
+        stream: false
+      };
+
+      // Log API request
+      addDebugEvent('info', 'Making API call to Ollama',
+        { url: `${ollamaUrl}/api/generate`, method: 'POST' },
+        'fetch',
+        { model: requestBody.model, promptLength: fullPrompt.length }
+      );
+
       const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'llama3.1:8b',
-          prompt: fullPrompt,
-          stream: false
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!ollamaResponse.ok) {
+        const errorText = await ollamaResponse.text();
+        addDebugEvent('error', `API request failed with status ${ollamaResponse.status}`,
+          { status: ollamaResponse.status, statusText: ollamaResponse.statusText, error: errorText },
+          'fetch',
+          { url: `${ollamaUrl}/api/generate` }
+        );
         throw new Error(`Ollama HTTP error! status: ${ollamaResponse.status}`);
       }
 
@@ -262,6 +309,20 @@ Please ensure Ollama is properly installed and running.`
 
       const ollamaData = await ollamaResponse.json();
       const responseText = ollamaData.response || 'No response received from Ollama';
+
+      // Log API response
+      addDebugEvent('success', 'API response received successfully',
+        {
+          responseLength: responseText.length,
+          modelUsed: ollamaData.model || requestBody.model,
+          totalDuration: ollamaData.total_duration,
+          loadDuration: ollamaData.load_duration,
+          promptEvalCount: ollamaData.prompt_eval_count,
+          evalCount: ollamaData.eval_count
+        },
+        'fetch',
+        { responseText: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '') }
+      );
 
       // Save API response to database
       const apiMessage = await saveMessage(conversationId, responseText, 'api');
@@ -363,6 +424,7 @@ ${ollamaStatus.message}`;
             messages={messages}
             onSendMessage={handleSendMessage}
             status={status}
+            debugData={debugData}
           />
         </div>
       </div>
