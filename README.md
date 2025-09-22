@@ -1,6 +1,6 @@
 # Local AI Chat
 
-A React chat application that runs AI locally using Ollama. Open source and completely free.
+A React chat application that runs AI locally using Ollama. Open source and completely free. Using https://github.com/web-agent-master/google-search/tree/main to help google search
 
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=flat&logo=github)](https://github.com/mylocalaichat/mylocalai)
 
