@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const scrapeOptions: CommandOptions = {
       timeout: options.timeout || 60000,
       locale: options.locale || 'en-US',
-      stateFile: options.stateFile || './browser-state.json',
+      stateFile: options.stateFile || './storage/browser-state.json',
       noSaveState: options.noSaveState || false,
     };
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const scrapeOptions: CommandOptions = {
       timeout: options.timeout || 60000,
       locale: options.locale || 'en-US',
-      stateFile: options.stateFile || './browser-state.json',
+      stateFile: options.stateFile || './storage/browser-state.json',
       noSaveState: options.noSaveState || false,
     };
 

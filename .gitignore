@@ -9,6 +9,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .next
-browser-state.json
-browser-state-fingerprint.json
+storage/browser-state.json
+storage/browser-state-fingerprint.json
 .DS_Store

@@ -14,19 +14,29 @@ export async function GET(req: NextRequest, { params }: { params: { thread_id: s
         // Get the conversation history for the specific thread
         const config = { configurable: { thread_id } };
 
-        // Get the latest checkpoint to retrieve the full conversation state
+        // Get the conversation history for the specific thread
         const conversationState = await checkpointer.get(config);
 
         if (!conversationState) {
             return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
         }
 
+        console.log('Conversation state:', conversationState);
+
+        // Get all checkpoints for this thread to build message history
+        const checkpointHistory = [];
+        for await (const checkpoint of checkpointer.list(config)) {
+            checkpointHistory.push(checkpoint);
+        }
+
         return NextResponse.json({
             thread_id,
             conversation: {
                 messages: conversationState?.channel_values?.messages || [],
-                checkpoint_id: conversationState.config?.configurable?.checkpoint_id,
-                metadata: conversationState.metadata
+                checkpoint_id: conversationState.checkpoint?.id,
+                metadata: conversationState.metadata,
+                history_count: checkpointHistory.length,
+                current_state: conversationState.channel_values
             }
         });
     } catch (error) {

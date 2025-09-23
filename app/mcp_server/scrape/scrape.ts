@@ -114,7 +114,7 @@ export async function scrapeUrl(
   // Set default options
   const {
     timeout = 60000,
-    stateFile = "./browser-state.json",
+    stateFile = "./storage/browser-state.json",
     noSaveState = false,
     locale = "en-US", // Default to English
   } = options;

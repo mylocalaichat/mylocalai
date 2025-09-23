@@ -7,17 +7,27 @@ export async function GET() {
 
         // Get all conversation thread IDs from the checkpointer
         const conversations = [];
-        for await (const conv of checkpointer.list({})) {
+
+        // List with no filter to get all threads
+        const checkpointGenerator = checkpointer.list({ limit: 100 });
+
+        for await (const checkpoint of checkpointGenerator) {
+            console.log('Found checkpoint:', checkpoint);
             conversations.push({
-                thread_id: conv.thread_id,
-                checkpoint_id: conv.checkpoint_id,
-                created_at: conv.created_at
+                thread_id: checkpoint.config?.configurable?.thread_id || 'unknown',
+                checkpoint_id: checkpoint.checkpoint?.id || checkpoint.checkpoint_id,
+                created_at: checkpoint.metadata?.created_at || new Date().toISOString(),
+                step: checkpoint.metadata?.step || 0
             });
         }
 
+        console.log('Total conversations found:', conversations.length);
         return NextResponse.json({ conversations });
     } catch (error) {
         console.error('Error listing conversations:', error);
-        return NextResponse.json({ error: 'Failed to list conversations' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Failed to list conversations',
+            details: error.message
+        }, { status: 500 });
     }
 }

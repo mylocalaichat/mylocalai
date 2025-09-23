@@ -113,7 +113,7 @@ export async function googleSearch(
   const {
     limit = 10,
     timeout = 60000,
-    stateFile = "./browser-state.json",
+    stateFile = "./storage/browser-state.json",
     noSaveState = false,
     locale = "en-US", // Default to English
   } = options;
@@ -1046,7 +1046,7 @@ export async function getGoogleSearchPageHtml(
   // Set default options, consistent with googleSearch
   const {
     timeout = 60000,
-    stateFile = "./browser-state.json",
+    stateFile = "./storage/browser-state.json",
     noSaveState = false,
     locale = "en-US", // Default to English
   } = options;

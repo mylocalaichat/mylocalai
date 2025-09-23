@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 10,
       timeout: searchParams.get('timeout') ? parseInt(searchParams.get('timeout')!) : 60000,
       locale: searchParams.get('locale') || 'en-US',
-      stateFile: searchParams.get('stateFile') || './browser-state.json',
+      stateFile: searchParams.get('stateFile') || './storage/browser-state.json',
       noSaveState: searchParams.get('noSaveState') === 'true',
     };
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       limit: options.limit || 10,
       timeout: options.timeout || 60000,
       locale: options.locale || 'en-US',
-      stateFile: options.stateFile || './browser-state.json',
+      stateFile: options.stateFile || './storage/browser-state.json',
       noSaveState: options.noSaveState || false,
     };
 

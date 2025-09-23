@@ -14,16 +14,14 @@ export async function POST(req: NextRequest) {
     let client: Client | null = null;
 
     try {
-        //get model and fullprompt from the request body
-        const { model, fullprompt } = await req.json();
-        console.log("model", model);
-        console.log("fullprompt", fullprompt);
+        //get model, message, and optional thread_id from the request body
+        const { model, message, thread_id } = await req.json();
 
         if (!model) {
             return NextResponse.json({ error: 'Model is required' }, { status: 400 });
         }
-        if (!fullprompt) {
-            return NextResponse.json({ error: 'Fullprompt is required' }, { status: 400 });
+        if (!message) {
+            return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
 
         // Initialize the ChatOpenAI model
@@ -52,13 +50,23 @@ export async function POST(req: NextRequest) {
         // Create and run the agent
         const checkpointer = getCheckpointer();
 
-        const config = { configurable: { thread_id: "1" } };
+        // Generate new thread_id if not provided, otherwise use existing one
+        const threadId = thread_id || randomUUID();
+        const isNewThread = !thread_id;
+
+        const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
         const agentResponse = await agent.invoke({
-            messages: [{ role: "user", content: fullprompt }]
+            messages: [{ role: "user", content: message }]
         }, config);
+
         console.log(agentResponse);
-        return NextResponse.json({ response: agentResponse });
+
+        return NextResponse.json({
+            response: agentResponse,
+            thread_id: threadId,
+            is_new_thread: isNewThread
+        });
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

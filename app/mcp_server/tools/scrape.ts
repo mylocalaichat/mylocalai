@@ -22,7 +22,7 @@ export const scrapeTool = {
       const scrapeOptions = {
         timeout: options.timeout || 60000,
         locale: options.locale || 'en-US',
-        stateFile: options.stateFile || './browser-state.json',
+        stateFile: options.stateFile || './storage/browser-state.json',
         noSaveState: options.noSaveState || false,
       };
 
