@@ -1,7 +1,6 @@
 // app/api/[transport]/route.ts
 import { createMcpHandler } from "mcp-handler";
 import { rollDiceTool } from "../../../tools/rollDice";
-import { searxSearchTool } from "../../../tools/searxSearch";
 import { scrapeTool } from "../../../tools/scrape";
 import { googleSearchTool } from "../../../tools/googleSearch";
 
@@ -24,14 +23,6 @@ const handler = createMcpHandler(
       rollDiceTool.description,
       rollDiceTool.inputSchema,
       rollDiceTool.handler
-    );
-
-    // Register searx search tool
-    server.tool(
-      searxSearchTool.name,
-      searxSearchTool.description,
-      searxSearchTool.inputSchema,
-      searxSearchTool.handler
     );
 
     // Register scrape tool
