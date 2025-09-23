@@ -6,16 +6,6 @@ export const googleSearchTool = {
   description: "Search Google and return parsed results or raw HTML",
   inputSchema: {
     query: z.string().min(1),
-    options: z.object({
-      limit: z.number().optional(),
-      timeout: z.number().optional(),
-      locale: z.string().optional(),
-      stateFile: z.string().optional(),
-      noSaveState: z.boolean().optional(),
-    }).optional(),
-    returnHtml: z.boolean().optional(),
-    saveToFile: z.boolean().optional(),
-    outputPath: z.string().optional(),
   },
   handler: async ({ query, options = {}, returnHtml = false, saveToFile = false, outputPath }: {
     query: string;

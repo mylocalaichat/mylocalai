@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@langchain/community": "^0.3.56",
+    "@langchain/langgraph": "^0.4.9",
+    "@langchain/mcp-adapters": "^0.6.0",
+    "@langchain/ollama": "^0.2.4",
     "@modelcontextprotocol/sdk": "^1.18.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
