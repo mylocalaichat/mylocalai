@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { googleSearch, getGoogleSearchPageHtml } from "../app/api/search/search";
+import { googleSearch, getGoogleSearchPageHtml } from "../search/search";
 
 export const googleSearchTool = {
   name: "google_search",

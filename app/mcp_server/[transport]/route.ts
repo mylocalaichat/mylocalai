@@ -1,19 +1,8 @@
 // app/api/[transport]/route.ts
 import { createMcpHandler } from "mcp-handler";
-import { rollDiceTool } from "../../../tools/rollDice";
-import { scrapeTool } from "../../../tools/scrape";
-import { googleSearchTool } from "../../../tools/googleSearch";
-
-// Determine basePath based on whether running from root or mcp_server subdirectory
-const getBasePath = () => {
-  // Check if we're running from the mcp_server subdirectory
-  const cwd = process.cwd();
-  if (cwd.includes('/mcp_server')) {
-    return "/api";
-  }
-  // Running from root directory
-  return "/modules/mcp_server/app/api";
-};
+import { rollDiceTool } from "../tools/rollDice";
+import { scrapeTool } from "../tools/scrape";
+import { googleSearchTool } from "../tools/googleSearch";
 
 const handler = createMcpHandler(
   (server) => {
@@ -45,8 +34,8 @@ const handler = createMcpHandler(
     // Optional server options
   },
   {
-    // Optional redis config
-    basePath: getBasePath(),
+    // Updated basePath for flattened structure
+    basePath: "/mcp_server",
     maxDuration: 60,
     verboseLogs: true,
   }

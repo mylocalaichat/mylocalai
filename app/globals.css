@@ -1,73 +1,133 @@
-/* Global styles for the Next.js app */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
-  box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,
+:root {
+  --primary-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  --surface-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.6));
+  --glass-border: rgba(148, 163, 184, 0.2);
+  --glass-shadow: 0 4px 24px 0 rgba(71, 85, 105, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-primary: #1e293b;
+  --accent-secondary: #334155;
+  --accent-blue: #0ea5e9;
+  --surface-primary: rgba(255, 255, 255, 0.95);
+  --surface-secondary: rgba(248, 250, 252, 0.9);
+  --backdrop-blur: blur(12px);
+}
+
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+  height: 100vh;
+  background: var(--primary-gradient);
+  background-attachment: fixed;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.app-main {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 1rem;
+  padding-top: 5rem;
+  min-height: 0;
 }
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+.app::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(203, 213, 225, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(226, 232, 240, 0.15) 0%, transparent 50%);
+  pointer-events: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  max-width: 1600px;
+  max-height: calc(100vh - 6rem);
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.resize-handle {
+  width: 2px;
+  background: var(--glass-border);
+  cursor: col-resize;
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  opacity: 0.6;
+  max-height: calc(100vh - 8rem);
+  align-self: stretch;
+}
+
+.resize-handle:hover {
+  background: var(--accent-blue);
+  width: 3px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(14, 165, 233, 0.2);
+}
+
+.resize-handle:active {
+  background: var(--accent-primary);
+  box-shadow: 0 0 12px rgba(30, 41, 59, 0.3);
+}
+
+/* Responsive design for three-panel layout */
+@media (max-width: 1200px) {
+  .app-container {
+    max-width: 100%;
   }
 }
 
-/* Module container styles */
-.module-container {
-  min-height: 100vh;
-  padding: 2rem;
-}
+@media (max-width: 768px) {
+  .app {
+    padding: 0.5rem;
+  }
 
-.module-nav {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
+  .app-container {
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: none;
+    height: auto;
+    min-height: 100vh;
+  }
 
-.module-nav a {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  transition: all 0.2s;
-}
+  .resize-handle {
+    width: 100%;
+    height: 4px;
+    cursor: row-resize;
+  }
 
-.module-nav a:hover {
-  background: rgba(255, 255, 255, 0.3);
+  .resize-handle:hover {
+    height: 6px;
+    width: 100%;
+  }
 }

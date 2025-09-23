@@ -5,34 +5,39 @@ import { ChatOllama } from "@langchain/ollama";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { loadMcpTools } from "@langchain/mcp-adapters";
 import { randomUUID } from "node:crypto";
-import { getCheckpointer } from "../../lib/checkpointer";
+import { getCheckpointer } from "./lib/checkpointer";
+
+// Increase max listeners to prevent warnings during development
+process.setMaxListeners(20);
 
 export async function POST(req: NextRequest) {
-    //get model and fullprompt from the request body
-    const { model, fullprompt } = await req.json();
-    console.log("model", model);
-    console.log("fullprompt", fullprompt);
-
-    if (!model) {
-        return NextResponse.json({ error: 'Model is required' }, { status: 400 });
-    }
-    if (!fullprompt) {
-        return NextResponse.json({ error: 'Fullprompt is required' }, { status: 400 });
-    }
-
-    // Initialize the ChatOpenAI model
-    const llm = new ChatOllama({ model: model });
-
-    // Automatically starts and connects to a MCP reference server
-    const transport = new StreamableHTTPClientTransport(new URL("http://localhost:3001/modules/mcp_server/app/api/mcp"));
-
-    // Initialize the client
-    const client = new Client({
-        name: "math-client",
-        version: "1.0.0",
-    });
+    let client: Client | null = null;
 
     try {
+        //get model and fullprompt from the request body
+        const { model, fullprompt } = await req.json();
+        console.log("model", model);
+        console.log("fullprompt", fullprompt);
+
+        if (!model) {
+            return NextResponse.json({ error: 'Model is required' }, { status: 400 });
+        }
+        if (!fullprompt) {
+            return NextResponse.json({ error: 'Fullprompt is required' }, { status: 400 });
+        }
+
+        // Initialize the ChatOpenAI model
+        const llm = new ChatOllama({ model: model });
+
+        // Automatically starts and connects to a MCP reference server
+        const transport = new StreamableHTTPClientTransport(new URL("http://localhost:3001/mcp_server/mcp"));
+
+        // Initialize the client
+        client = new Client({
+            name: "math-client",
+            version: "1.0.0",
+        });
+
         // Connect to the transport
         await client.connect(transport);
 
@@ -58,7 +63,13 @@ export async function POST(req: NextRequest) {
         console.error(e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     } finally {
-        // Clean up connection
-        await client.close();
+        // Ensure client is always closed, even if there's an error
+        if (client) {
+            try {
+                await client.close();
+            } catch (closeError) {
+                console.error('Error closing MCP client:', closeError);
+            }
+        }
     }
 }

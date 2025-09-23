@@ -1,19 +1,11 @@
 import { z } from "zod";
-import { scrapeUrl } from "../app/api/scrape/scrape";
+import { scrapeUrl } from "../scrape/scrape";
 
 export const scrapeTool = {
   name: "scrape_url",
   description: "Scrape content from a URL using Playwright browser automation",
   inputSchema: {
     url: z.string().url(),
-    options: z.object({
-      timeout: z.number().optional(),
-      locale: z.string().optional(),
-      stateFile: z.string().optional(),
-      noSaveState: z.boolean().optional(),
-    }).optional(),
-    saveToFile: z.boolean().optional(),
-    outputPath: z.string().optional(),
   },
   handler: async ({ url, options = {}, saveToFile = false, outputPath }: {
     url: string;
