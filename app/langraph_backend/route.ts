@@ -6,6 +6,7 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { loadMcpTools } from "@langchain/mcp-adapters";
 import { randomUUID } from "node:crypto";
 import { getCheckpointer } from "./lib/checkpointer";
+import { LangGraphRequestSchema, convertToLangChainMessages } from "./schemas";
 
 // Increase max listeners to prevent warnings during development
 process.setMaxListeners(20);
@@ -14,15 +15,18 @@ export async function POST(req: NextRequest) {
     let client: Client | null = null;
 
     try {
-        //get model, messages, and optional thread_id from the request body
-        const { model, messages, thread_id } = await req.json();
+        const body = await req.json();
 
-        if (!model) {
-            return NextResponse.json({ error: 'Model is required' }, { status: 400 });
+        // Validate request body with Zod
+        const validationResult = LangGraphRequestSchema.safeParse(body);
+        if (!validationResult.success) {
+            return NextResponse.json({
+                error: 'Validation failed',
+                details: validationResult.error.format()
+            }, { status: 400 });
         }
-        if (!messages || !Array.isArray(messages) || messages.length === 0) {
-            return NextResponse.json({ error: 'Messages array is required and must not be empty' }, { status: 400 });
-        }
+
+        const { model, messages, thread_id } = validationResult.data;
 
         // Initialize the ChatOpenAI model
         const llm = new ChatOllama({ model: model });
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
         const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
         const agentResponse = await agent.invoke({
-            messages: messages
+            messages: convertToLangChainMessages(messages)
         }, config);
 
         console.log(agentResponse);
