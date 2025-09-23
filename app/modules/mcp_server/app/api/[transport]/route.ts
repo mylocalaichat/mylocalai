@@ -1,7 +1,8 @@
 // app/api/[transport]/route.ts
 import { createMcpHandler } from "mcp-handler";
 import { rollDiceTool } from "../../../tools/rollDice";
-import { searxSearchTool } from "../../../tools/searxSearch";
+import { scrapeTool } from "../../../tools/scrape";
+import { googleSearchTool } from "../../../tools/googleSearch";
 
 // Determine basePath based on whether running from root or mcp_server subdirectory
 const getBasePath = () => {
@@ -24,12 +25,20 @@ const handler = createMcpHandler(
       rollDiceTool.handler
     );
 
-    // Register searx search tool
+    // Register scrape tool
     server.tool(
-      searxSearchTool.name,
-      searxSearchTool.description,
-      searxSearchTool.inputSchema,
-      searxSearchTool.handler
+      scrapeTool.name,
+      scrapeTool.description,
+      scrapeTool.inputSchema,
+      scrapeTool.handler
+    );
+
+    // Register Google search tool
+    server.tool(
+      googleSearchTool.name,
+      googleSearchTool.description,
+      googleSearchTool.inputSchema,
+      googleSearchTool.handler
     );
   },
   {
