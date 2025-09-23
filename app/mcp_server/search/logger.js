@@ -24,18 +24,12 @@ const logger = pino({
     base: {} // Remove default fields like pid, hostname
 });
 
-// Add process exit handlers
-process.on("exit", () => {
-    logger.info("Process exiting, closing logger");
-});
-
+// Add process exit handlers for cleanup only
 process.on("SIGINT", () => {
-    logger.info("Received SIGINT signal, closing logger");
     process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-    logger.info("Received SIGTERM signal, closing logger");
     process.exit(0);
 });
 

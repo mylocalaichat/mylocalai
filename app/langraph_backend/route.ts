@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     let client: Client | null = null;
 
     try {
-        //get model, message, and optional thread_id from the request body
-        const { model, message, thread_id } = await req.json();
+        //get model, messages, and optional thread_id from the request body
+        const { model, messages, thread_id } = await req.json();
 
         if (!model) {
             return NextResponse.json({ error: 'Model is required' }, { status: 400 });
         }
-        if (!message) {
-            return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+            return NextResponse.json({ error: 'Messages array is required and must not be empty' }, { status: 400 });
         }
 
         // Initialize the ChatOpenAI model
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
         const agentResponse = await agent.invoke({
-            messages: [{ role: "user", content: message }]
+            messages: messages
         }, config);
 
         console.log(agentResponse);
