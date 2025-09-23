@@ -21,6 +21,7 @@ const logger = pino({
         },
     },
     timestamp: pino.stdTimeFunctions.isoTime,
+    base: {} // Remove default fields like pid, hostname
 });
 
 // Add process exit handlers
