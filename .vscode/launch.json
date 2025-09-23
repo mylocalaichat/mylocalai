@@ -13,43 +13,6 @@
       "env": {
         "NODE_OPTIONS": "--inspect"
       }
-    },
-    {
-      "name": "Main App: debug client-side",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3000",
-      "webRoot": "${workspaceFolder}",
-      "sourceMapPathOverrides": {
-        "webpack://_N_E/*": "${webRoot}/*"
-      }
-    },
-    {
-      "name": "Main App: debug full stack",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
-      "args": ["dev"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
-      "env": {
-        "NODE_OPTIONS": "--inspect"
-      },
-      "serverReadyAction": {
-        "pattern": "ready - started server on .+, url: (https?://.+)",
-        "uriFormat": "%s",
-        "action": "debugWithChrome"
-      }
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Main App: debug full stack (server + client)",
-      "configurations": [
-        "Main App: debug server-side",
-        "Main App: debug client-side"
-      ]
     }
   ]
 }
