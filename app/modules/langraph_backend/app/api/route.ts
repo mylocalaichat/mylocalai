@@ -5,8 +5,7 @@ import { ChatOllama } from "@langchain/ollama";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { loadMcpTools } from "@langchain/mcp-adapters";
 import { randomUUID } from "node:crypto";
-import { MemorySaver } from "@langchain/langgraph";
-
+import { getCheckpointer } from "../../lib/checkpointer";
 
 export async function POST(req: NextRequest) {
     //get model and fullprompt from the request body
@@ -46,7 +45,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Create and run the agent
-        const checkpointer = new MemorySaver();
+        const checkpointer = getCheckpointer();
 
         const config = { configurable: { thread_id: "1" } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
