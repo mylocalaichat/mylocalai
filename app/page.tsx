@@ -385,6 +385,29 @@ Please ensure Ollama is properly installed and running.`
       setStatus({ icon: '✅', message: 'Response complete', isLoading: false });
       setTimeout(() => setStatus(null), 2000);
 
+      // If this was a new thread, refresh the chat list to show the first message
+      console.log('Checking if new thread:', langGraphData.is_new_thread);
+      console.log('Full langGraphData keys:', Object.keys(langGraphData));
+
+      if (langGraphData.is_new_thread) {
+        console.log('This is a new thread, triggering chat list refresh...');
+        // Also dispatch the first user message for immediate UI update
+        const firstUserMessage = conversationMessages.find(msg => msg.role === 'user')?.content || message;
+
+        setTimeout(() => {
+          console.log('Dispatching refreshChatList event with:', { threadId: conversationId, firstMessage: firstUserMessage });
+          // Trigger a custom event to refresh the chat list with the first message
+          window.dispatchEvent(new CustomEvent('refreshChatList', {
+            detail: {
+              threadId: conversationId,
+              firstMessage: firstUserMessage
+            }
+          }));
+        }, 1000); // Small delay to ensure conversation is saved
+      } else {
+        console.log('Not a new thread, skipping chat list refresh');
+      }
+
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
 

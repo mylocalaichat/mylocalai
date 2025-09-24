@@ -62,7 +62,26 @@ export async function POST(req: NextRequest) {
 
         // Generate new thread_id if not provided, otherwise use existing one
         const threadId = thread_id || randomUUID();
-        const isNewThread = !thread_id;
+
+        // Check if this is a new thread by looking at the checkpointer
+        let isNewThread = !thread_id; // Default behavior for when no thread_id is provided
+
+        if (thread_id) {
+            // If thread_id is provided, check if it exists in the checkpointer
+            try {
+                const config = { configurable: { thread_id: threadId } };
+                const existingState = await checkpointer.get(config);
+                console.log(`Checking thread ${threadId}: existingState =`, existingState);
+                isNewThread = !existingState;
+                console.log(`Thread ${threadId} isNewThread =`, isNewThread);
+            } catch (error) {
+                // If there's an error getting the state, assume it's a new thread
+                console.log(`Error checking thread ${threadId}:`, error);
+                isNewThread = true;
+            }
+        }
+
+        console.log(`Final isNewThread value for thread ${threadId}:`, isNewThread);
 
         const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });

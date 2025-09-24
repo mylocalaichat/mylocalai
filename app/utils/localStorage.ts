@@ -63,6 +63,18 @@ export const storageUtils = {
     }
   },
 
+  deleteConversation: (id) => {
+    // Remove conversation
+    const conversations = storageUtils.getAllConversations();
+    const filteredConversations = conversations.filter(conv => conv.id !== id);
+    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(filteredConversations));
+
+    // Remove all messages for this conversation
+    const allMessages = storageUtils.getAllMessages();
+    const filteredMessages = allMessages.filter(msg => msg.conversation_id !== id);
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(filteredMessages));
+  },
+
   // Message operations
   addMessage: (conversationId, content, sender) => {
     const messages = storageUtils.getAllMessages();

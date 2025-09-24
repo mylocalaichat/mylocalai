@@ -6,9 +6,38 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingConversation, setDeletingConversation] = useState(null);
 
   useEffect(() => {
     loadConversations();
+
+    // Listen for refresh events from the main page
+    const handleRefreshChatList = (event: any) => {
+      console.log('Refreshing chat list after new conversation...');
+
+      // If we have specific conversation details, update immediately
+      if (event.detail && event.detail.threadId && event.detail.firstMessage) {
+        const { threadId, firstMessage } = event.detail;
+        console.log(`Updating conversation ${threadId} with first message: "${firstMessage}"`);
+
+        // Update the specific conversation in the list immediately
+        setConversations(prev => prev.map(conv =>
+          conv.id === threadId
+            ? { ...conv, title: firstMessage, updated_at: new Date().toISOString() }
+            : conv
+        ));
+      }
+
+      // Also refresh from backend to get the complete updated list
+      loadConversations();
+    };
+
+    window.addEventListener('refreshChatList', handleRefreshChatList);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('refreshChatList', handleRefreshChatList);
+    };
   }, []);
 
   const loadConversations = async () => {
@@ -66,6 +95,50 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
       const newConversation = storageUtils.createConversation();
       setConversations(prev => [newConversation, ...prev]);
       onNewConversation(newConversation.id);
+    }
+  };
+
+  const handleDeleteConversation = async (conversationId, event) => {
+    // Prevent the conversation selection when clicking delete
+    event.stopPropagation();
+
+    if (window.confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
+      try {
+        setDeletingConversation(conversationId);
+
+        // Delete from LangGraph backend
+        const response = await fetch(`/langraph_backend/conversations/${conversationId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          console.error(`Failed to delete conversation ${conversationId}:`, response.statusText);
+        }
+
+        // Also clear from localStorage as fallback
+        storageUtils.deleteConversation(conversationId);
+
+        // Remove from local state
+        setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+
+        // If this was the current conversation, reload the page to reset
+        if (conversationId === currentConversationId) {
+          window.location.reload();
+        }
+
+      } catch (error) {
+        console.error('Error deleting conversation:', error);
+
+        // Fallback to localStorage deletion
+        storageUtils.deleteConversation(conversationId);
+        setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+
+        if (conversationId === currentConversationId) {
+          window.location.reload();
+        }
+      } finally {
+        setDeletingConversation(null);
+      }
     }
   };
 
@@ -137,11 +210,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
   };
 
   const getConversationPreview = (conversation) => {
-    if (conversation.title && conversation.title !== 'New conversation') {
-      return conversation.title.length > 50 ?
-        conversation.title.substring(0, 50) + '...' :
-        conversation.title;
-    }
     if (conversation.message_count === 0) {
       return 'New conversation';
     }
@@ -219,6 +287,18 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
                   }`}
                   onClick={() => onConversationSelect(conversation.id)}
                 >
+                  <button
+                    className="delete-conversation-button"
+                    onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                    disabled={deletingConversation === conversation.id}
+                    title="Delete conversation"
+                  >
+                    {deletingConversation === conversation.id ? (
+                      <span className="deleting-spinner">⏳</span>
+                    ) : (
+                      <span className="delete-icon">×</span>
+                    )}
+                  </button>
                   <div className="conversation-main">
                     <div className="conversation-title">
                       {conversation.title && conversation.title !== 'New conversation' ?
@@ -227,9 +307,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
                           conversation.title) :
                         `Chat #${conversation.id.substring(0, 8)}`
                       }
-                    </div>
-                    <div className="conversation-preview">
-                      {getConversationPreview(conversation)}
                     </div>
                   </div>
                   <div className="conversation-meta">
