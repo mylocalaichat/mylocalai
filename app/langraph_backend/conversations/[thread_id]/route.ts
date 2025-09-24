@@ -23,21 +23,59 @@ export async function GET(req: NextRequest, { params }: { params: { thread_id: s
 
         console.log('Conversation state:', conversationState);
 
-        // Get all checkpoints for this thread to build message history
-        const checkpointHistory = [];
-        for await (const checkpoint of checkpointer.list(config)) {
-            checkpointHistory.push(checkpoint);
+        // Convert LangChain messages to the format expected by create conversation
+        const messages = [];
+        const langchainMessages = conversationState?.channel_values?.messages || [];
+
+        for (const message of langchainMessages) {
+            let role = 'user';
+            let content = '';
+
+            // Handle different message formats
+            if (message._getType) {
+                // LangChain message objects
+                switch (message._getType()) {
+                    case 'human':
+                        role = 'user';
+                        break;
+                    case 'ai':
+                        role = 'assistant';
+                        break;
+                    case 'system':
+                        role = 'system';
+                        break;
+                }
+                content = message.content || '';
+            } else if (message.type) {
+                // Plain message objects
+                switch (message.type) {
+                    case 'human':
+                        role = 'user';
+                        break;
+                    case 'ai':
+                        role = 'assistant';
+                        break;
+                    case 'system':
+                        role = 'system';
+                        break;
+                }
+                content = message.content || '';
+            } else if (message.role) {
+                // Already in the correct format
+                role = message.role;
+                content = message.content || '';
+            }
+
+            messages.push({
+                role,
+                content
+            });
         }
 
         return NextResponse.json({
             thread_id,
-            conversation: {
-                messages: conversationState?.channel_values?.messages || [],
-                checkpoint_id: conversationState.checkpoint?.id,
-                metadata: conversationState.metadata,
-                history_count: checkpointHistory.length,
-                current_state: conversationState.channel_values
-            }
+            messages,
+            total_messages: messages.length
         });
     } catch (error) {
         console.error('Error getting conversation:', error);
