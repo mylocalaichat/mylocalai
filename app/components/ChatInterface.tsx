@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './ChatInterface.css';
 
 const ChatInterface = ({ messages, onSendMessage, status, debugData, threadId }) => {
@@ -110,7 +112,6 @@ const ChatInterface = ({ messages, onSendMessage, status, debugData, threadId })
       setTimeout(() => setCopied(false), 2000);
       addDebugLog('success', 'Thread ID copied to clipboard', { threadId }, 'handleCopyThreadId', { length: threadId.length });
     } catch (error) {
-      console.error('Failed to copy thread ID:', error);
       addDebugLog('error', 'Failed to copy thread ID', { error: error.message }, 'handleCopyThreadId', { threadId });
 
       // Fallback for older browsers
@@ -124,7 +125,6 @@ const ChatInterface = ({ messages, onSendMessage, status, debugData, threadId })
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (fallbackError) {
-        console.error('Fallback copy also failed:', fallbackError);
       }
     }
   };
@@ -170,7 +170,44 @@ const ChatInterface = ({ messages, onSendMessage, status, debugData, threadId })
             key={message.id}
             className={`message ${message.sender === 'user' ? 'user' : 'api'}`}
           >
-            {message.text}
+            {message.sender === 'user' ? (
+              // Render user messages as plain text
+              <div className="message-content">{message.text}</div>
+            ) : (
+              // Render AI responses as markdown
+              <div className="message-content markdown">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Customize code blocks
+                    code({node, inline, className, children, ...props}) {
+                      const match = /language-(\w+)/.exec(className || '')
+                      return !inline && match ? (
+                        <pre className="code-block">
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        </pre>
+                      ) : (
+                        <code className="inline-code" {...props}>
+                          {children}
+                        </code>
+                      )
+                    },
+                    // Customize links to open in new tab
+                    a({href, children, ...props}) {
+                      return (
+                        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                          {children}
+                        </a>
+                      )
+                    }
+                  }}
+                >
+                  {message.text}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         ))}
         {isLoading && (

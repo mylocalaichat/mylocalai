@@ -38,11 +38,10 @@ export async function POST(req: NextRequest) {
             : "http://localhost:3000/mcp_server/mcp";
         const transport = new StreamableHTTPClientTransport(new URL(mcpServerUrl));
 
-        console.log('Connecting to MCP server at:', mcpServerUrl);
 
         // Initialize the client
         client = new Client({
-            name: "math-client",
+            name: "web-tools-client",
             version: "1.0.0",
         });
 
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
         await client.connect(transport);
 
         // Get tools with custom configuration
-        const tools = await loadMcpTools("math", client, {
+        const tools = await loadMcpTools("web-tools", client, {
             throwOnLoadError: true,
             prefixToolNameWithServerName: false,
             additionalToolNamePrefix: "",
@@ -71,30 +70,21 @@ export async function POST(req: NextRequest) {
             try {
                 const config = { configurable: { thread_id: threadId } };
                 const existingState = await checkpointer.get(config);
-                console.log(`Checking thread ${threadId}: existingState =`, existingState);
                 isNewThread = !existingState;
-                console.log(`Thread ${threadId} isNewThread =`, isNewThread);
             } catch (error) {
                 // If there's an error getting the state, assume it's a new thread
-                console.log(`Error checking thread ${threadId}:`, error);
                 isNewThread = true;
             }
         }
 
-        console.log(`Final isNewThread value for thread ${threadId}:`, isNewThread);
-
         const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
 
-        console.log('Invoking agent with messages:', messages);
-        console.log('Converted LangChain messages:', convertToLangChainMessages(messages));
 
         const agentResponse = await agent.invoke({
             messages: convertToLangChainMessages(messages)
         }, config);
 
-        console.log('Raw agent response:', JSON.stringify(agentResponse, null, 2));
-        console.log('Agent response messages:', agentResponse.messages);
 
         // Convert agent response to the same format as conversation GET endpoint
         const responseMessages = [];

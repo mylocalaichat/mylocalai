@@ -13,12 +13,10 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
 
     // Listen for refresh events from the main page
     const handleRefreshChatList = (event: any) => {
-      console.log('Refreshing chat list after new conversation...');
 
       // If we have specific conversation details, update immediately
       if (event.detail && event.detail.threadId && event.detail.firstMessage) {
         const { threadId, firstMessage } = event.detail;
-        console.log(`Updating conversation ${threadId} with first message: "${firstMessage}"`);
 
         // Update the specific conversation in the list immediately
         setConversations(prev => prev.map(conv =>
@@ -90,7 +88,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
       setConversations(prev => [newConversation, ...prev]);
       onNewConversation(newThreadId);
     } catch (error) {
-      console.error('Error creating new conversation:', error);
       // Fallback to localStorage method
       const newConversation = storageUtils.createConversation();
       setConversations(prev => [newConversation, ...prev]);
@@ -112,7 +109,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
         });
 
         if (!response.ok) {
-          console.error(`Failed to delete conversation ${conversationId}:`, response.statusText);
         }
 
         // Also clear from localStorage as fallback
@@ -127,7 +123,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
         }
 
       } catch (error) {
-        console.error('Error deleting conversation:', error);
 
         // Fallback to localStorage deletion
         storageUtils.deleteConversation(conversationId);
@@ -150,25 +145,19 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
         // Delete all conversations from LangGraph backend
         const deletePromises = conversations.map(async (conversation) => {
           try {
-            console.log(`Deleting conversation: ${conversation.id}`);
             const response = await fetch(`/langraph_backend/conversations/${conversation.id}`, {
               method: 'DELETE'
             });
 
             if (!response.ok) {
-              console.error(`Failed to delete conversation ${conversation.id}:`, response.statusText);
             } else {
-              console.log(`Successfully deleted conversation ${conversation.id}`);
             }
           } catch (error) {
-            console.error(`Error deleting conversation ${conversation.id}:`, error);
           }
         });
 
         // Wait for all delete operations to complete
-        console.log(`Deleting ${deletePromises.length} conversations...`);
         await Promise.allSettled(deletePromises);
-        console.log('All delete operations completed');
 
         // Also clear localStorage as fallback
         storageUtils.clearAllData();
@@ -181,7 +170,6 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
         window.location.reload();
 
       } catch (error) {
-        console.error('Error clearing conversations:', error);
 
         // Fallback to localStorage clearing if API calls fail
         storageUtils.clearAllData();

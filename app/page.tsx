@@ -39,7 +39,6 @@ export default function ChatPage() {
           }
         }
       } catch (error) {
-        console.log('LangGraph backend not available, using localStorage fallback');
       }
 
       // Fallback to localStorage or create new conversation
@@ -194,7 +193,7 @@ ${ollamaStatus.message}`;
       );
 
       // Check if required model is available
-      const requiredModel = 'llama3.1:8b';
+      const requiredModel = 'granite3.2:8b';
       const hasRequiredModel = models.some(model =>
         model.name === requiredModel || model.name.startsWith('llama3.1')
       );
@@ -289,18 +288,32 @@ Please ensure Ollama is properly installed and running.`
       // Update status - preparing request
       setStatus({ icon: '⚡', message: 'Preparing conversation context', isLoading: true });
 
-      // Build messages array for LangGraph (excluding the current message from messages state)
-      const conversationMessages = messages
-        .filter(msg => msg.sender !== 'system')
-        .map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text
-        }));
+      // Check if this is the first user message in the conversation
+      const existingUserMessages = messages.filter(msg => msg.sender === 'user');
+      const isFirstUserMessage = existingUserMessages.length === 0;
 
-      // Add system prompt for the first message in a new conversation
-      const isFirstMessage = conversationMessages.length === 0;
-      if (isFirstMessage) {
-        const systemPrompt = `You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
+      let conversationMessages;
+
+      if (isFirstUserMessage) {
+        // First message: Include system prompt + all conversation history + current message
+
+        conversationMessages = messages
+          .filter(msg => msg.sender !== 'system')
+          .map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.text
+          }));
+
+        // Add the current user message
+        conversationMessages.push({
+          role: 'user',
+          content: message
+        });
+
+        // Add system prompt at the beginning with current date
+        const systemPrompt = `Current Date: Wednesday, September 24, 2025
+
+You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
 
 CORE BEHAVIORS:
 - Be conversational, friendly, and personable - like talking to a knowledgeable friend
@@ -308,12 +321,14 @@ CORE BEHAVIORS:
 - Show enthusiasm for helping and learning alongside the user
 - Admit when you're uncertain and use tools to find accurate information
 
-TOOL USAGE (CRITICAL):
-- **Proactively search** for current events, recent news, stock prices, weather, or any time-sensitive information
-- **Always search** when asked about people, companies, products, or events that may have recent updates
-- **Use web scraping** when you need specific content from websites the user mentions
-- **Search before answering** questions about facts, statistics, or claims that could be outdated
-- Don't guess or rely on training data for current information - USE THE TOOLS
+TOOL USAGE (CRITICAL - ABSOLUTELY MANDATORY):
+- **NEVER make up or guess information** - if you don't know something current, SEARCH FOR IT
+- **ALWAYS search first** for ANY questions about current events, people in office, recent news, or facts that could change
+- **Presidents, politicians, current events**: MUST search - never rely on training data
+- **Companies, stocks, weather, sports**: MUST search for current information
+- **When asked "who is the current..."** ALWAYS use google_search tool first
+- **Never claim to search without actually using the google_search tool**
+- If unsure whether to search: SEARCH. Better to search unnecessarily than give wrong info
 
 RESPONSE STYLE:
 - Start responses naturally, don't announce tool usage unless explaining why
@@ -324,17 +339,51 @@ RESPONSE STYLE:
 
 Remember: Your tools give you superpowers - use them! Users expect current, accurate information, not outdated training data.`;
 
-        conversationMessages.push({
+        conversationMessages.unshift({
           role: 'system',
           content: systemPrompt
         });
-      }
+      } else {
+        // Subsequent messages: Include system prompt to maintain tool awareness
+        const systemPrompt = `Current Date: Wednesday, September 24, 2025
 
-      // Add the current message
-      conversationMessages.push({
-        role: 'user',
-        content: message
-      });
+You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
+
+CORE BEHAVIORS:
+- Be conversational, friendly, and personable - like talking to a knowledgeable friend
+- Always prioritize accuracy and helpfulness over speed
+- Show enthusiasm for helping and learning alongside the user
+- Admit when you're uncertain and use tools to find accurate information
+
+TOOL USAGE (CRITICAL - ABSOLUTELY MANDATORY):
+- **NEVER make up or guess information** - if you don't know something current, SEARCH FOR IT
+- **ALWAYS search first** for ANY questions about current events, people in office, recent news, or facts that could change
+- **Presidents, politicians, current events**: MUST search - never rely on training data
+- **Companies, stocks, weather, sports**: MUST search for current information
+- **When asked "who is the current..."** ALWAYS use google_search tool first
+- **Never claim to search without actually using the google_search tool**
+- If unsure whether to search: SEARCH. Better to search unnecessarily than give wrong info
+
+RESPONSE STYLE:
+- Start responses naturally, don't announce tool usage unless explaining why
+- Explain complex topics clearly with examples when helpful
+- Provide comprehensive answers that anticipate follow-up questions
+- Include relevant details and context from your searches
+- End with engaging follow-up questions when appropriate
+
+Remember: Your tools give you superpowers - use them! Users expect current, accurate information, not outdated training data.`;
+
+        conversationMessages = [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ];
+      }
 
       // Update status - calling LangGraph
       setStatus({ icon: '🤖', message: 'Processing with LangGraph agent', isLoading: true });
@@ -372,7 +421,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       setStatus({ icon: '📥', message: 'Response received, processing', isLoading: true });
 
       const langGraphData = await langGraphResponse.json();
-      console.log('Full LangGraph response:', JSON.stringify(langGraphData, null, 2));
 
       // Extract the last assistant message from the response
       let responseText = 'No response received from LangGraph agent';
@@ -381,7 +429,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         // Find the last assistant message
         for (let i = langGraphData.messages.length - 1; i >= 0; i--) {
           const message = langGraphData.messages[i];
-          console.log(`Message ${i}:`, message);
 
           // Look for assistant messages
           if (message.role === 'assistant' && message.content) {
@@ -390,7 +437,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
           }
         }
       } else {
-        console.log('No messages found in LangGraph response or invalid structure');
       }
 
       // Log API response
@@ -419,16 +465,12 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       setTimeout(() => setStatus(null), 2000);
 
       // If this was a new thread, refresh the chat list to show the first message
-      console.log('Checking if new thread:', langGraphData.is_new_thread);
-      console.log('Full langGraphData keys:', Object.keys(langGraphData));
 
       if (langGraphData.is_new_thread) {
-        console.log('This is a new thread, triggering chat list refresh...');
         // Also dispatch the first user message for immediate UI update
         const firstUserMessage = conversationMessages.find(msg => msg.role === 'user')?.content || message;
 
         setTimeout(() => {
-          console.log('Dispatching refreshChatList event with:', { threadId: conversationId, firstMessage: firstUserMessage });
           // Trigger a custom event to refresh the chat list with the first message
           window.dispatchEvent(new CustomEvent('refreshChatList', {
             detail: {
@@ -438,7 +480,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
           }));
         }, 1000); // Small delay to ensure conversation is saved
       } else {
-        console.log('Not a new thread, skipping chat list refresh');
       }
 
     } catch (error) {

@@ -23,7 +23,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ thre
             return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
         }
 
-        console.log('Conversation state:', conversationState);
 
         // Convert LangChain messages to the format expected by create conversation
         // Only include human and AI messages, filter out system messages
@@ -132,7 +131,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
         try {
             const dbPath = path.join(process.cwd(), "storage", "langraph_conversations.db");
 
-            console.log(`Attempting to delete thread ${thread_id} from database: ${dbPath}`);
 
             // Create a connection to the same database file
             const sqliteConn = new Database(dbPath);
@@ -150,7 +148,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
                     .run(thread_id);
             } catch (writesError) {
                 // Writes table might not exist in all versions
-                console.log('Writes table not accessible or does not exist');
             }
 
             // Close the connection
@@ -159,11 +156,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
             const checkpointsDeleted = deleteCheckpointsResult.changes || 0;
             const writesDeleted = deleteWritesResult?.changes || 0;
 
-            console.log(`Successfully deleted conversation thread: ${thread_id}`);
-            console.log(`Deleted ${checkpointsDeleted} checkpoints and ${writesDeleted} writes`);
 
             if (checkpointsDeleted === 0) {
-                console.log(`Warning: No checkpoints found to delete for thread: ${thread_id}`);
             }
 
         } catch (deleteError) {

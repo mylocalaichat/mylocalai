@@ -223,6 +223,120 @@
   animation-delay: -0.16s;
 }
 
+/* Markdown content styles */
+.message-content.markdown {
+  line-height: 1.6;
+}
+
+.message-content.markdown h1,
+.message-content.markdown h2,
+.message-content.markdown h3,
+.message-content.markdown h4,
+.message-content.markdown h5,
+.message-content.markdown h6 {
+  margin: 1em 0 0.5em 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.message-content.markdown h1 {
+  font-size: 1.5em;
+  border-bottom: 2px solid var(--glass-border);
+  padding-bottom: 0.3em;
+}
+
+.message-content.markdown h2 {
+  font-size: 1.3em;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 0.2em;
+}
+
+.message-content.markdown p {
+  margin: 0.8em 0;
+}
+
+.message-content.markdown ul,
+.message-content.markdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.message-content.markdown li {
+  margin: 0.2em 0;
+}
+
+.message-content.markdown blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--accent-color);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-style: italic;
+}
+
+.message-content.markdown .code-block {
+  margin: 1em 0;
+  padding: 1em;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+.message-content.markdown .code-block code {
+  background: none;
+  padding: 0;
+  border: none;
+  color: #f8f8f2;
+}
+
+.message-content.markdown .inline-code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  color: var(--accent-color);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-content.markdown a {
+  color: var(--accent-color);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.message-content.markdown a:hover {
+  border-bottom-color: var(--accent-color);
+}
+
+.message-content.markdown table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.message-content.markdown th,
+.message-content.markdown td {
+  border: 1px solid var(--glass-border);
+  padding: 0.5em;
+  text-align: left;
+}
+
+.message-content.markdown th {
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+
+.message-content.markdown hr {
+  margin: 1.5em 0;
+  border: none;
+  border-top: 1px solid var(--glass-border);
+}
+
 .chat-input-form {
   padding: 0.75rem;
   border-top: 1px solid var(--glass-border);

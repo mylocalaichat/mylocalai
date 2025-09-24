@@ -24,7 +24,7 @@ This application runs AI locally on your machine using Ollama. It's open source 
 
 2. **Install a model**
    ```bash
-   ollama pull llama3.1:8b
+   ollama pull granite3.2:8b
    ```
 
 3. **Run the application**
@@ -45,15 +45,15 @@ This application runs AI locally on your machine using Ollama. It's open source 
 
 ## Requirements
 
-- **Hardware**: MacBook Pro or equivalent computer with sufficient RAM and processing power to run Llama3.1:8b locally
+- **Hardware**: MacBook Pro or equivalent computer with sufficient RAM and processing power to run granite3.2:8b locally
 - **Software**:
   - Node.js (v19 or higher)
   - Ollama installed locally
-- **Recommended**: 16GB+ RAM for optimal performance with Llama3.1:8b
+- **Recommended**: 16GB+ RAM for optimal performance with granite3.2:8b
 
 ## Supported Models
 
-Works with llama3.1:8b (recommended)
+Works with granite3.2:8b (recommended)
 
 ## Configuration
 
@@ -71,7 +71,7 @@ PORT=3000
 - Verify models are installed with `ollama list`
 
 **Performance Issues?**
-- Use smaller models like llama3.1:8b
+- Use smaller models like granite3.2:8b
 - Close other applications to free up memory
 
 ## Development

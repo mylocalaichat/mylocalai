@@ -53,7 +53,6 @@ export async function GET() {
                     }
                 }
             } catch (e) {
-                console.log(`Could not extract first question for thread ${threadId}:`, e.message);
             }
 
             conversations.push({
@@ -67,7 +66,6 @@ export async function GET() {
         // Sort by creation date (newest first)
         conversations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-        console.log('Total conversations found:', conversations.length);
         return NextResponse.json({ conversations });
     } catch (error) {
         console.error('Error listing conversations:', error);

@@ -21,6 +21,8 @@
     "playwright": "^1.55.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "web-vitals": "^2.1.4",
     "zod": "^3.25.76"
   },

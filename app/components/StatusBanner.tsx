@@ -144,7 +144,7 @@ const StatusBanner = () => {
                   </button>
                   {ollamaStatus.hasModel ? (
                     <span className="model-info"> • {ollamaStatus.models && ollamaStatus.models.length > 0 ?
-                      (ollamaStatus.models.find(m => m.includes('llama3.1:8b')) ||
+                      (ollamaStatus.models.find(m => m.includes('granite3.2:8b')) ||
                        ollamaStatus.models.find(m => m.includes('llama3.1')) ||
                        ollamaStatus.models[0]) : 'Model available'}</span>
                   ) : (
@@ -226,7 +226,7 @@ const StatusBanner = () => {
                   <h4>Install a Model</h4>
                   <p>In a new terminal, install a language model:</p>
                   <div className="code-options">
-                    <code className="setup-code">ollama pull llama3.1:8b</code>
+                    <code className="setup-code">ollama pull granite3.2:8b</code>
                     <span className="code-label">Recommended</span>
                   </div>
                   <div className="alternative-models">
