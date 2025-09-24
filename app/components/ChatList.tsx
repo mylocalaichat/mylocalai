@@ -5,6 +5,7 @@ import './ChatList.css';
 const ChatList = ({ currentConversationId, onConversationSelect, onNewConversation, isCollapsed, onToggleCollapse }) => {
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -68,12 +69,53 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
     }
   };
 
-  const handleClearCache = () => {
+  const handleClearCache = async () => {
     if (window.confirm('Are you sure you want to clear all conversations and messages? This cannot be undone.')) {
-      storageUtils.clearAllData();
-      setConversations([]);
-      // Trigger a page reload to reinitialize with a fresh conversation
-      window.location.reload();
+      try {
+        setIsDeleting(true);
+
+        // Delete all conversations from LangGraph backend
+        const deletePromises = conversations.map(async (conversation) => {
+          try {
+            console.log(`Deleting conversation: ${conversation.id}`);
+            const response = await fetch(`/langraph_backend/conversations/${conversation.id}`, {
+              method: 'DELETE'
+            });
+
+            if (!response.ok) {
+              console.error(`Failed to delete conversation ${conversation.id}:`, response.statusText);
+            } else {
+              console.log(`Successfully deleted conversation ${conversation.id}`);
+            }
+          } catch (error) {
+            console.error(`Error deleting conversation ${conversation.id}:`, error);
+          }
+        });
+
+        // Wait for all delete operations to complete
+        console.log(`Deleting ${deletePromises.length} conversations...`);
+        await Promise.allSettled(deletePromises);
+        console.log('All delete operations completed');
+
+        // Also clear localStorage as fallback
+        storageUtils.clearAllData();
+
+        // Clear the conversations list
+        setConversations([]);
+        setIsDeleting(false);
+
+        // Trigger a page reload to reinitialize with a fresh conversation
+        window.location.reload();
+
+      } catch (error) {
+        console.error('Error clearing conversations:', error);
+
+        // Fallback to localStorage clearing if API calls fail
+        storageUtils.clearAllData();
+        setConversations([]);
+        setIsDeleting(false);
+        window.location.reload();
+      }
     }
   };
 
@@ -127,8 +169,13 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
                 className="clear-cache-button"
                 onClick={handleClearCache}
                 title="Clear all conversations"
+                disabled={isDeleting}
               >
-                <span className="clear-icon">×</span>
+                {isDeleting ? (
+                  <span className="loading-spinner" style={{ fontSize: '12px' }}>⏳</span>
+                ) : (
+                  <span className="clear-icon">×</span>
+                )}
               </button>
             </>
           )}

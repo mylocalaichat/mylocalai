@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCheckpointer } from "../../lib/checkpointer";
+import Database from 'better-sqlite3';
+import path from 'path';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ thread_id: string }> }) {
     try {
@@ -128,8 +130,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
         // Since we can't directly access the SQLite connection from the checkpointer,
         // we'll create our own connection to the same database file
         try {
-            const Database = require('better-sqlite3');
-            const path = require('path');
             const dbPath = path.join(process.cwd(), "storage", "langraph_conversations.db");
 
             console.log(`Attempting to delete thread ${thread_id} from database: ${dbPath}`);

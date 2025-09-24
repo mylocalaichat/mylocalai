@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
         const llm = new ChatOllama({ model: model });
 
         // Automatically starts and connects to a MCP reference server
-        // Use the same port as Next.js dev server (3002 in this case)
+        // Use the same port as Next.js dev server (3000)
         const mcpServerUrl = process.env.NODE_ENV === 'development'
-            ? "http://localhost:3002/mcp_server/mcp"
-            : "http://localhost:3001/mcp_server/mcp";
+            ? "http://localhost:3000/mcp_server/mcp"
+            : "http://localhost:3000/mcp_server/mcp";
         const transport = new StreamableHTTPClientTransport(new URL(mcpServerUrl));
 
         console.log('Connecting to MCP server at:', mcpServerUrl);
@@ -77,9 +77,86 @@ export async function POST(req: NextRequest) {
         console.log('Raw agent response:', JSON.stringify(agentResponse, null, 2));
         console.log('Agent response messages:', agentResponse.messages);
 
+        // Convert agent response to the same format as conversation GET endpoint
+        const responseMessages = [];
+
+        if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
+            for (const message of agentResponse.messages) {
+                let role = 'user';
+                let content = '';
+                let shouldInclude = true;
+
+                // Handle different message formats and extract content safely
+                const messageContent = typeof message.content === 'string'
+                    ? message.content
+                    : Array.isArray(message.content)
+                        ? message.content.map(c => typeof c === 'string' ? c : JSON.stringify(c)).join(' ')
+                        : String(message.content || '');
+
+                // Handle different message formats
+                if (message.constructor.name === 'HumanMessage' || (message as any)._getType?.() === 'human') {
+                    role = 'user';
+                    content = messageContent;
+                } else if (message.constructor.name === 'AIMessage' || (message as any)._getType?.() === 'ai') {
+                    role = 'assistant';
+                    content = messageContent;
+                } else if (message.constructor.name === 'SystemMessage' || (message as any)._getType?.() === 'system') {
+                    shouldInclude = false; // Skip system messages
+                } else if ((message as any).type) {
+                    // Plain message objects
+                    switch ((message as any).type) {
+                        case 'human':
+                            role = 'user';
+                            content = messageContent;
+                            break;
+                        case 'ai':
+                            role = 'assistant';
+                            content = messageContent;
+                            break;
+                        case 'system':
+                            shouldInclude = false; // Skip system messages
+                            break;
+                        default:
+                            shouldInclude = false; // Skip unknown message types
+                            break;
+                    }
+                } else if ((message as any).role) {
+                    // Already in the correct format
+                    switch ((message as any).role) {
+                        case 'user':
+                            role = 'user';
+                            content = messageContent;
+                            break;
+                        case 'assistant':
+                            role = 'assistant';
+                            content = messageContent;
+                            break;
+                        case 'system':
+                            shouldInclude = false; // Skip system messages
+                            break;
+                        default:
+                            shouldInclude = false; // Skip unknown roles
+                            break;
+                    }
+                } else {
+                    // Unknown message format, skip
+                    shouldInclude = false;
+                }
+
+                // Only add human and AI messages to the response
+                if (shouldInclude && content.trim()) {
+                    responseMessages.push({
+                        role,
+                        content
+                    });
+                }
+            }
+        }
+
         return NextResponse.json({
-            response: agentResponse,
             thread_id: threadId,
+            messages: responseMessages,
+            total_messages: responseMessages.length,
             is_new_thread: isNewThread
         });
     } catch (e) {

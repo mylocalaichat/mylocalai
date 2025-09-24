@@ -341,32 +341,23 @@ Please ensure Ollama is properly installed and running.`
       const langGraphData = await langGraphResponse.json();
       console.log('Full LangGraph response:', JSON.stringify(langGraphData, null, 2));
 
-      const agentResponse = langGraphData.response;
-      console.log('Agent response structure:', JSON.stringify(agentResponse, null, 2));
-
-      // Extract the last assistant message from the agent response
+      // Extract the last assistant message from the response
       let responseText = 'No response received from LangGraph agent';
 
-      if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
-        // Find the last assistant/AI message
-        for (let i = agentResponse.messages.length - 1; i >= 0; i--) {
-          const message = agentResponse.messages[i];
+      if (langGraphData && langGraphData.messages && langGraphData.messages.length > 0) {
+        // Find the last assistant message
+        for (let i = langGraphData.messages.length - 1; i >= 0; i--) {
+          const message = langGraphData.messages[i];
           console.log(`Message ${i}:`, message);
 
-          // Check different message formats
-          if (message._getType && message._getType() === 'ai' && message.content) {
-            responseText = message.content;
-            break;
-          } else if (message.type === 'ai' && message.content) {
-            responseText = message.content;
-            break;
-          } else if (message.role === 'assistant' && message.content) {
+          // Look for assistant messages
+          if (message.role === 'assistant' && message.content) {
             responseText = message.content;
             break;
           }
         }
       } else {
-        console.log('No messages found in agent response or invalid structure');
+        console.log('No messages found in LangGraph response or invalid structure');
       }
 
       // Log API response
@@ -375,7 +366,7 @@ Please ensure Ollama is properly installed and running.`
           responseLength: responseText.length,
           threadId: langGraphData.thread_id,
           isNewThread: langGraphData.is_new_thread,
-          totalMessages: agentResponse.messages.length
+          totalMessages: langGraphData.total_messages || 0
         },
         'fetch',
         { responseText: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '') }
