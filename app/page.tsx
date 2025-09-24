@@ -60,9 +60,9 @@ export default function ChatPage() {
         let welcomeMessage;
 
         if (ollamaStatus.success) {
-          welcomeMessage = "Welcome! I'm powered by Ollama with LangGraph tools. Ask me anything!";
+          welcomeMessage = "Hi there! I'm your AI assistant powered by LangGraph with real-time tools including web search, web scraping, and more. I'm here to help with questions, research, current events, or anything else you need. What can I assist you with today?";
         } else {
-          welcomeMessage = `Welcome! I'm ready to chat, but I need Ollama to be running first.
+          welcomeMessage = `Hi! I'm your AI assistant, but I need Ollama to be running first to help you properly.
 
 ${ollamaStatus.message}`;
         }
@@ -297,6 +297,39 @@ Please ensure Ollama is properly installed and running.`
           content: msg.text
         }));
 
+      // Add system prompt for the first message in a new conversation
+      const isFirstMessage = conversationMessages.length === 0;
+      if (isFirstMessage) {
+        const systemPrompt = `You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
+
+CORE BEHAVIORS:
+- Be conversational, friendly, and personable - like talking to a knowledgeable friend
+- Always prioritize accuracy and helpfulness over speed
+- Show enthusiasm for helping and learning alongside the user
+- Admit when you're uncertain and use tools to find accurate information
+
+TOOL USAGE (CRITICAL):
+- **Proactively search** for current events, recent news, stock prices, weather, or any time-sensitive information
+- **Always search** when asked about people, companies, products, or events that may have recent updates
+- **Use web scraping** when you need specific content from websites the user mentions
+- **Search before answering** questions about facts, statistics, or claims that could be outdated
+- Don't guess or rely on training data for current information - USE THE TOOLS
+
+RESPONSE STYLE:
+- Start responses naturally, don't announce tool usage unless explaining why
+- Explain complex topics clearly with examples when helpful
+- Provide comprehensive answers that anticipate follow-up questions
+- Include relevant details and context from your searches
+- End with engaging follow-up questions when appropriate
+
+Remember: Your tools give you superpowers - use them! Users expect current, accurate information, not outdated training data.`;
+
+        conversationMessages.push({
+          role: 'system',
+          content: systemPrompt
+        });
+      }
+
       // Add the current message
       conversationMessages.push({
         role: 'user',
@@ -456,7 +489,7 @@ Please ensure Ollama is properly installed and running.`
       setMessages([]);
 
       // Add a welcome message to the UI only (not persisted until first user message)
-      const welcomeMessage: string = "Welcome! I'm powered by LangGraph with MCP tools. Ask me anything!";
+      const welcomeMessage: string = "Hi there! I'm your AI assistant powered by LangGraph with real-time tools including web search, web scraping, and more. I'm here to help with questions, research, current events, or anything else you need. What can I assist you with today?";
 
       const welcomeMessageObj = {
         id: `${newConvId}-welcome`,

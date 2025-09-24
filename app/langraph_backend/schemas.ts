@@ -11,7 +11,7 @@ export const MessageSchema = z.object({
 export const LangGraphRequestSchema = z.object({
     model: z.string().min(1, 'Model is required'),
     messages: z.array(MessageSchema).min(1, 'Messages array must not be empty'),
-    thread_id: z.string().uuid().optional()
+    thread_id: z.string().min(1).optional()
 });
 
 // Type exports for TypeScript
