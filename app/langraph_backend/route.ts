@@ -32,7 +32,13 @@ export async function POST(req: NextRequest) {
         const llm = new ChatOllama({ model: model });
 
         // Automatically starts and connects to a MCP reference server
-        const transport = new StreamableHTTPClientTransport(new URL("http://localhost:3001/mcp_server/mcp"));
+        // Use the same port as Next.js dev server (3002 in this case)
+        const mcpServerUrl = process.env.NODE_ENV === 'development'
+            ? "http://localhost:3002/mcp_server/mcp"
+            : "http://localhost:3001/mcp_server/mcp";
+        const transport = new StreamableHTTPClientTransport(new URL(mcpServerUrl));
+
+        console.log('Connecting to MCP server at:', mcpServerUrl);
 
         // Initialize the client
         client = new Client({
@@ -60,11 +66,16 @@ export async function POST(req: NextRequest) {
 
         const config = { configurable: { thread_id: threadId } };
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
+
+        console.log('Invoking agent with messages:', messages);
+        console.log('Converted LangChain messages:', convertToLangChainMessages(messages));
+
         const agentResponse = await agent.invoke({
             messages: convertToLangChainMessages(messages)
         }, config);
 
-        console.log(agentResponse);
+        console.log('Raw agent response:', JSON.stringify(agentResponse, null, 2));
+        console.log('Agent response messages:', agentResponse.messages);
 
         return NextResponse.json({
             response: agentResponse,

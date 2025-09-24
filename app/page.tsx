@@ -23,7 +23,26 @@ export default function ChatPage() {
     try {
       setIsLoading(true);
 
-      // Check if there are existing conversations
+      // Try to get existing conversations from LangGraph backend
+      try {
+        const response = await fetch('/langraph_backend/conversations');
+        if (response.ok) {
+          const data = await response.json();
+          const existingConversations = data.conversations || [];
+
+          if (existingConversations.length > 0) {
+            // Load the most recent conversation
+            const recentConversation = existingConversations[0];
+            setConversationId(recentConversation.thread_id);
+            await loadMessagesFromLangGraph(recentConversation.thread_id);
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('LangGraph backend not available, using localStorage fallback');
+      }
+
+      // Fallback to localStorage or create new conversation
       const existingConversations = storageUtils.getAllConversations();
 
       if (existingConversations.length > 0) {
@@ -41,7 +60,7 @@ export default function ChatPage() {
         let welcomeMessage;
 
         if (ollamaStatus.success) {
-          welcomeMessage = "Welcome! I'm powered by Ollama and storing chats in browser storage. Ask me anything!";
+          welcomeMessage = "Welcome! I'm powered by Ollama with LangGraph tools. Ask me anything!";
         } else {
           welcomeMessage = `Welcome! I'm ready to chat, but I need Ollama to be running first.
 
@@ -65,6 +84,31 @@ ${ollamaStatus.message}`;
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMessagesFromLangGraph = async (threadId) => {
+    try {
+      const response = await fetch(`/langraph_backend/conversations/${threadId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const langGraphMessages = data.messages || [];
+
+        const formattedMessages = langGraphMessages.map((msg, index) => ({
+          id: `${threadId}-${index}`,
+          text: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'api',
+          timestamp: new Date()
+        }));
+
+        setMessages(formattedMessages);
+      } else {
+        throw new Error('Failed to load messages from LangGraph');
+      }
+    } catch (error) {
+      console.error('Error loading messages from LangGraph:', error);
+      // Fallback to localStorage if available
+      loadMessages(threadId);
     }
   };
 
@@ -231,104 +275,120 @@ Please ensure Ollama is properly installed and running.`
 
     try {
       // Set initial status
-      setStatus({ icon: '📤', message: 'Sending message to server', isLoading: true });
+      setStatus({ icon: '📤', message: 'Sending message to LangGraph', isLoading: true });
 
-      // Save user message to database
-      const userMessage = await saveMessage(conversationId, message, 'user');
-      if (userMessage) {
-        setMessages(prev => [...prev, userMessage]);
-      }
-
-      // Update status - checking Ollama
-      setStatus({ icon: '🔍', message: 'Checking Ollama status', isLoading: true });
-
-      // Check Ollama status before making the API call
-      const ollamaStatus = await checkOllamaStatus();
-      if (!ollamaStatus.success) {
-        setStatus({ icon: '❌', message: 'Ollama not available', isLoading: false });
-        const errorMessage = await saveMessage(conversationId, ollamaStatus.message, 'api');
-        if (errorMessage) {
-          setMessages(prev => [...prev, errorMessage]);
-        }
-        setTimeout(() => setStatus(null), 3000);
-        return;
-      }
+      // Add user message to UI immediately
+      const userMessage = {
+        id: `${conversationId}-${Date.now()}`,
+        text: message,
+        sender: 'user',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
 
       // Update status - preparing request
-      setStatus({ icon: '⚡', message: 'Preparing request with conversation history', isLoading: true });
+      setStatus({ icon: '⚡', message: 'Preparing conversation context', isLoading: true });
 
-      // Build conversation history for context (excluding the current message)
-      const conversationHistory = messages
-        .filter(msg => msg.sender !== 'system') // Exclude system messages if any
-        .map(msg => `${msg.sender === 'user' ? 'Human' : 'Assistant'}: ${msg.text}`)
-        .join('\n\n');
+      // Build messages array for LangGraph (excluding the current message from messages state)
+      const conversationMessages = messages
+        .filter(msg => msg.sender !== 'system')
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text
+        }));
 
-      // Build the full prompt with history + current message
-      const fullPrompt = conversationHistory
-        ? `${conversationHistory}\n\nHuman: ${message}\n\nAssistant:`
-        : `Human: ${message}\n\nAssistant:`;
+      // Add the current message
+      conversationMessages.push({
+        role: 'user',
+        content: message
+      });
 
-      // Update status - calling LLM
-      setStatus({ icon: '🤖', message: 'Waiting for LLM response', isLoading: true });
-
-      // Call Ollama API
-      const ollamaUrl = getOllamaUrl();
-      const requestBody = {
-        model: 'llama3.1:8b',
-        prompt: fullPrompt,
-        stream: false
-      };
+      // Update status - calling LangGraph
+      setStatus({ icon: '🤖', message: 'Processing with LangGraph agent', isLoading: true });
 
       // Log API request
-      addDebugEvent('info', 'Making API call to Ollama',
-        { url: `${ollamaUrl}/api/generate`, method: 'POST' },
+      addDebugEvent('info', 'Making API call to LangGraph backend',
+        { url: '/langraph_backend', method: 'POST' },
         'fetch',
-        { model: requestBody.model, promptLength: fullPrompt.length }
+        { model: 'llama3.1:8b', messageCount: conversationMessages.length }
       );
 
-      const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
+      const langGraphResponse = await fetch('/langraph_backend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          model: 'llama3.1:8b',
+          messages: conversationMessages,
+          thread_id: conversationId
+        })
       });
 
-      if (!ollamaResponse.ok) {
-        const errorText = await ollamaResponse.text();
-        addDebugEvent('error', `API request failed with status ${ollamaResponse.status}`,
-          { status: ollamaResponse.status, statusText: ollamaResponse.statusText, error: errorText },
+      if (!langGraphResponse.ok) {
+        const errorText = await langGraphResponse.text();
+        addDebugEvent('error', `LangGraph request failed with status ${langGraphResponse.status}`,
+          { status: langGraphResponse.status, statusText: langGraphResponse.statusText, error: errorText },
           'fetch',
-          { url: `${ollamaUrl}/api/generate` }
+          { url: '/langraph_backend' }
         );
-        throw new Error(`Ollama HTTP error! status: ${ollamaResponse.status}`);
+        throw new Error(`LangGraph HTTP error! status: ${langGraphResponse.status}`);
       }
 
       // Update status - processing response
       setStatus({ icon: '📥', message: 'Response received, processing', isLoading: true });
 
-      const ollamaData = await ollamaResponse.json();
-      const responseText = ollamaData.response || 'No response received from Ollama';
+      const langGraphData = await langGraphResponse.json();
+      console.log('Full LangGraph response:', JSON.stringify(langGraphData, null, 2));
+
+      const agentResponse = langGraphData.response;
+      console.log('Agent response structure:', JSON.stringify(agentResponse, null, 2));
+
+      // Extract the last assistant message from the agent response
+      let responseText = 'No response received from LangGraph agent';
+
+      if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
+        // Find the last assistant/AI message
+        for (let i = agentResponse.messages.length - 1; i >= 0; i--) {
+          const message = agentResponse.messages[i];
+          console.log(`Message ${i}:`, message);
+
+          // Check different message formats
+          if (message._getType && message._getType() === 'ai' && message.content) {
+            responseText = message.content;
+            break;
+          } else if (message.type === 'ai' && message.content) {
+            responseText = message.content;
+            break;
+          } else if (message.role === 'assistant' && message.content) {
+            responseText = message.content;
+            break;
+          }
+        }
+      } else {
+        console.log('No messages found in agent response or invalid structure');
+      }
 
       // Log API response
-      addDebugEvent('success', 'API response received successfully',
+      addDebugEvent('success', 'LangGraph response received successfully',
         {
           responseLength: responseText.length,
-          modelUsed: ollamaData.model || requestBody.model,
-          totalDuration: ollamaData.total_duration,
-          loadDuration: ollamaData.load_duration,
-          promptEvalCount: ollamaData.prompt_eval_count,
-          evalCount: ollamaData.eval_count
+          threadId: langGraphData.thread_id,
+          isNewThread: langGraphData.is_new_thread,
+          totalMessages: agentResponse.messages.length
         },
         'fetch',
         { responseText: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '') }
       );
 
-      // Save API response to database
-      const apiMessage = await saveMessage(conversationId, responseText, 'api');
-      if (apiMessage) {
-        setMessages(prev => [...prev, apiMessage]);
-      }
+      // Add API response to UI
+      const apiMessage = {
+        id: `${conversationId}-${Date.now()}-response`,
+        text: responseText,
+        sender: 'api',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, apiMessage]);
 
       // Update status - completed
       setStatus({ icon: '✅', message: 'Response complete', isLoading: false });
@@ -340,47 +400,58 @@ Please ensure Ollama is properly installed and running.`
       // Update status - error
       setStatus({ icon: '❌', message: `Error: ${error.message}`, isLoading: false });
 
-      // Save error message to database
-      const errorText = `Error: ${error.message}. Make sure Ollama is running locally.`;
-      const errorMessage = await saveMessage(conversationId, errorText, 'api');
-      if (errorMessage) {
-        setMessages(prev => [...prev, errorMessage]);
-      }
+      // Add error message to UI
+      const errorText = `Error: ${error.message}. Make sure the LangGraph backend is running.`;
+      const errorMessage = {
+        id: `${conversationId}-${Date.now()}-error`,
+        text: errorText,
+        sender: 'api',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
 
       setTimeout(() => setStatus(null), 5000);
     }
   };
 
-  const handleConversationSelect = useCallback((convId) => {
+  const handleConversationSelect = useCallback(async (convId: string) => {
     if (convId === conversationId) return; // Already selected
 
     try {
       setConversationId(convId);
-      loadMessages(convId);
+
+      // Try to load from LangGraph first
+      try {
+        await loadMessagesFromLangGraph(convId);
+      } catch (error) {
+        // Fallback to localStorage
+        loadMessages(convId);
+      }
     } catch (error) {
       console.error('Error switching conversation:', error);
     }
   }, [conversationId]);
 
-  const handleNewConversation = async (newConvId) => {
+  const handleNewConversation = async (newConvId: string) => {
     try {
       setIsLoading(true);
       setConversationId(newConvId);
 
-      // Check Ollama status and add appropriate welcome message
-      const ollamaStatus = await checkOllamaStatus();
-      let welcomeMessage;
+      // For LangGraph conversations, we'll start with an empty messages array
+      // The conversation will be created when the first message is sent
+      setMessages([]);
 
-      if (ollamaStatus.success) {
-        welcomeMessage = "Welcome to a new conversation! I'm powered by Ollama and ready to help. Ask me anything!";
-      } else {
-        welcomeMessage = `Welcome to a new conversation! I need Ollama to be running first.
+      // Add a welcome message to the UI only (not persisted until first user message)
+      const welcomeMessage: string = "Welcome! I'm powered by LangGraph with MCP tools. Ask me anything!";
 
-${ollamaStatus.message}`;
-      }
+      const welcomeMessageObj = {
+        id: `${newConvId}-welcome`,
+        text: welcomeMessage,
+        sender: 'api',
+        timestamp: new Date()
+      };
 
-      await saveMessage(newConvId, welcomeMessage, 'api');
-      loadMessages(newConvId);
+      setMessages([welcomeMessageObj]);
     } catch (error) {
       console.error('Error creating new conversation:', error);
     } finally {
@@ -425,6 +496,7 @@ ${ollamaStatus.message}`;
             onSendMessage={handleSendMessage}
             status={status}
             debugData={debugData}
+            threadId={conversationId}
           />
         </div>
       </div>

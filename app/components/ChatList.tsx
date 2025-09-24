@@ -13,10 +13,32 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
   const loadConversations = async () => {
     try {
       setIsLoading(true);
-      const data = storageUtils.getAllConversations();
-      setConversations(data);
+
+      // Try to get conversations from LangGraph backend
+      const response = await fetch('/langraph_backend/conversations');
+      if (response.ok) {
+        const data = await response.json();
+        const langGraphConversations = data.conversations || [];
+
+        // Transform LangGraph conversation format to match ChatList expectations
+        const transformedConversations = langGraphConversations.map(conv => ({
+          id: conv.thread_id,
+          updated_at: conv.created_at,
+          message_count: 1, // We'll update this when we have access to full message history
+          title: conv.first_user_question || 'New conversation'
+        }));
+
+        setConversations(transformedConversations);
+      } else {
+        // Fallback to localStorage
+        const data = storageUtils.getAllConversations();
+        setConversations(data);
+      }
     } catch (error) {
       console.error('Error loading conversations:', error);
+      // Fallback to localStorage on error
+      const data = storageUtils.getAllConversations();
+      setConversations(data);
     } finally {
       setIsLoading(false);
     }
@@ -24,11 +46,25 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
 
   const handleNewChat = async () => {
     try {
+      // Generate a new UUID for the thread_id
+      const newThreadId = crypto.randomUUID();
+
+      // Create conversation entry for immediate UI feedback
+      const newConversation = {
+        id: newThreadId,
+        updated_at: new Date().toISOString(),
+        message_count: 0,
+        title: 'New conversation'
+      };
+
+      setConversations(prev => [newConversation, ...prev]);
+      onNewConversation(newThreadId);
+    } catch (error) {
+      console.error('Error creating new conversation:', error);
+      // Fallback to localStorage method
       const newConversation = storageUtils.createConversation();
       setConversations(prev => [newConversation, ...prev]);
       onNewConversation(newConversation.id);
-    } catch (error) {
-      console.error('Error creating new conversation:', error);
     }
   };
 
@@ -59,6 +95,11 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
   };
 
   const getConversationPreview = (conversation) => {
+    if (conversation.title && conversation.title !== 'New conversation') {
+      return conversation.title.length > 50 ?
+        conversation.title.substring(0, 50) + '...' :
+        conversation.title;
+    }
     if (conversation.message_count === 0) {
       return 'New conversation';
     }
@@ -133,7 +174,12 @@ const ChatList = ({ currentConversationId, onConversationSelect, onNewConversati
                 >
                   <div className="conversation-main">
                     <div className="conversation-title">
-                      Chat #{conversation.id}
+                      {conversation.title && conversation.title !== 'New conversation' ?
+                        (conversation.title.length > 30 ?
+                          conversation.title.substring(0, 30) + '...' :
+                          conversation.title) :
+                        `Chat #${conversation.id.substring(0, 8)}`
+                      }
                     </div>
                     <div className="conversation-preview">
                       {getConversationPreview(conversation)}

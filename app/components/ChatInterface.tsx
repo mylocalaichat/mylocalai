@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ChatInterface.css';
 
-const ChatInterface = ({ messages, onSendMessage, status, debugData }) => {
+const ChatInterface = ({ messages, onSendMessage, status, debugData, threadId }) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugLogs, setDebugLogs] = useState([]);
   const [expandedLogs, setExpandedLogs] = useState(new Set());
+  const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -100,12 +101,55 @@ const ChatInterface = ({ messages, onSendMessage, status, debugData }) => {
     }
   };
 
+  const handleCopyThreadId = async () => {
+    if (!threadId) return;
+
+    try {
+      await navigator.clipboard.writeText(threadId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      addDebugLog('success', 'Thread ID copied to clipboard', { threadId }, 'handleCopyThreadId', { length: threadId.length });
+    } catch (error) {
+      console.error('Failed to copy thread ID:', error);
+      addDebugLog('error', 'Failed to copy thread ID', { error: error.message }, 'handleCopyThreadId', { threadId });
+
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = threadId;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (fallbackError) {
+        console.error('Fallback copy also failed:', fallbackError);
+      }
+    }
+  };
+
   return (
     <div className="chat-interface">
       <div className="chat-header">
         <div className="chat-title">
           <span className="chat-icon">💬</span>
-          Chat Interface
+          <div className="title-content">
+            <div className="main-title">Chat Interface</div>
+            {threadId && (
+              <div className="thread-id">
+                <span className="thread-label">Thread:</span>
+                <span className="thread-value">{threadId.substring(0, 8)}...{threadId.substring(threadId.length - 4)}</span>
+                <button
+                  className="thread-copy-button"
+                  onClick={handleCopyThreadId}
+                  title={copied ? "Copied!" : "Copy full thread ID"}
+                >
+                  {copied ? "✓" : "📋"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="debug-toggle">
           <label className="debug-toggle-label">
