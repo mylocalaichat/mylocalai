@@ -193,7 +193,7 @@ ${ollamaStatus.message}`;
       );
 
       // Check if required model is available
-      const requiredModel = 'granite3.2:8b';
+      const requiredModel = 'qwen3:14b';
       const hasRequiredModel = models.some(model =>
         model.name === requiredModel || model.name.startsWith('llama3.1')
       );
@@ -220,7 +220,7 @@ ollama serve
 
 **Then install the required model:**
 \`\`\`bash
-ollama pull llama3.1:8b
+ollama pull qwen3:14b
 \`\`\`
 
 **Check if it's running:**
@@ -236,11 +236,11 @@ Make sure Ollama is running on ${ollamaUrl}`
           error: 'Model not found',
           message: `🤖 **Model Not Available**
 
-The required model (llama3.1:8b) is not installed.
+The required model (qwen3:14b) is not installed.
 
 **Install the model:**
 \`\`\`bash
-ollama pull llama3.1:8b
+ollama pull qwen3:14b
 \`\`\`
 
 **Alternative models you can try:**
@@ -392,7 +392,7 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       addDebugEvent('info', 'Making API call to LangGraph backend',
         { url: '/langraph_backend', method: 'POST' },
         'fetch',
-        { model: 'llama3.1:8b', messageCount: conversationMessages.length }
+        { model: 'qwen3:14b', messageCount: conversationMessages.length }
       );
 
       // Create SSE connection for streaming response
@@ -405,7 +405,7 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
           'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
-          model: 'llama3.1:8b',
+          model: 'qwen3:14b',
           messages: conversationMessages,
           thread_id: conversationId
         })
