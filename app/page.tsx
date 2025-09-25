@@ -395,10 +395,14 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         { model: 'llama3.1:8b', messageCount: conversationMessages.length }
       );
 
-      const langGraphResponse = await fetch('/langraph_backend', {
+      // Create SSE connection for streaming response
+      const sseUrl = new URL('/langraph_backend', window.location.origin);
+
+      const response = await fetch(sseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
           model: 'llama3.1:8b',
@@ -407,36 +411,108 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         })
       });
 
-      if (!langGraphResponse.ok) {
-        const errorText = await langGraphResponse.text();
-        addDebugEvent('error', `LangGraph request failed with status ${langGraphResponse.status}`,
-          { status: langGraphResponse.status, statusText: langGraphResponse.statusText, error: errorText },
+      if (!response.ok) {
+        const errorText = await response.text();
+        addDebugEvent('error', `LangGraph request failed with status ${response.status}`,
+          { status: response.status, statusText: response.statusText, error: errorText },
           'fetch',
           { url: '/langraph_backend' }
         );
-        throw new Error(`LangGraph HTTP error! status: ${langGraphResponse.status}`);
+        throw new Error(`LangGraph HTTP error! status: ${response.status}`);
       }
 
-      // Update status - processing response
-      setStatus({ icon: '📥', message: 'Response received, processing', isLoading: true });
+      // Handle SSE streaming
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      const langGraphData = await langGraphResponse.json();
+      let responseText = '';
+      let langGraphData = {
+        thread_id: conversationId,
+        is_new_thread: false,
+        messages: [],
+        total_messages: 0
+      };
+      let streamingMessageId = null;
 
-      // Extract the last assistant message from the response
-      let responseText = 'No response received from LangGraph agent';
+      if (reader) {
+        // Add placeholder message for streaming
+        streamingMessageId = `${conversationId}-streaming-${Date.now()}`;
+        const streamingMessage = {
+          id: streamingMessageId,
+          text: '',
+          sender: 'api',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, streamingMessage]);
 
-      if (langGraphData && langGraphData.messages && langGraphData.messages.length > 0) {
-        // Find the last assistant message
-        for (let i = langGraphData.messages.length - 1; i >= 0; i--) {
-          const message = langGraphData.messages[i];
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          // Look for assistant messages
-          if (message.role === 'assistant' && message.content) {
-            responseText = message.content;
-            break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const eventData = JSON.parse(line.slice(6));
+
+                  switch (eventData.type) {
+                    case 'start':
+                      // Update status - streaming started
+                      setStatus({ icon: '🤖', message: 'Streaming response...', isLoading: true });
+                      // Update langGraphData with initial info
+                      langGraphData.thread_id = eventData.thread_id || conversationId;
+                      langGraphData.is_new_thread = eventData.is_new_thread || false;
+                      break;
+
+                    case 'delta':
+                      // Update streaming content
+                      responseText += eventData.content;
+                      setMessages(prev => prev.map(msg =>
+                        msg.id === streamingMessageId
+                          ? { ...msg, text: responseText }
+                          : msg
+                      ));
+                      break;
+
+                    case 'tool_call':
+                      // Update status for tool usage
+                      setStatus({ icon: '🔍', message: eventData.message, isLoading: true });
+                      break;
+
+                    case 'complete':
+                      // Final response received
+                      langGraphData = eventData;
+                      // Extract final response from complete data
+                      if (eventData.messages && eventData.messages.length > 0) {
+                        for (let i = eventData.messages.length - 1; i >= 0; i--) {
+                          const message = eventData.messages[i];
+                          if (message.role === 'assistant' && message.content) {
+                            responseText = message.content;
+                            break;
+                          }
+                        }
+                      }
+                      break;
+
+                    case 'error':
+                      throw new Error(eventData.error);
+                  }
+                } catch (parseError) {
+                  // Ignore parsing errors for incomplete chunks
+                }
+              }
+            }
           }
+        } finally {
+          reader.releaseLock();
         }
-      } else {
+      }
+
+      if (!responseText) {
+        responseText = 'No response received from LangGraph agent';
       }
 
       // Log API response
@@ -451,14 +527,24 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         { responseText: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '') }
       );
 
-      // Add API response to UI
-      const apiMessage = {
-        id: `${conversationId}-${Date.now()}-response`,
-        text: responseText,
-        sender: 'api',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, apiMessage]);
+      // Replace streaming message with final message
+      if (streamingMessageId) {
+        // Update the streaming message with final content
+        setMessages(prev => prev.map(msg =>
+          msg.id === streamingMessageId
+            ? { ...msg, text: responseText, id: `${conversationId}-${Date.now()}-response` }
+            : msg
+        ));
+      } else {
+        // Fallback: add as new message if streaming failed
+        const apiMessage = {
+          id: `${conversationId}-${Date.now()}-response`,
+          text: responseText,
+          sender: 'api',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, apiMessage]);
+      }
 
       // Update status - completed
       setStatus({ icon: '✅', message: 'Response complete', isLoading: false });

@@ -81,104 +81,154 @@ export async function POST(req: NextRequest) {
         const agent = createReactAgent({ llm: llm, tools, checkpointer: checkpointer });
 
 
-        const agentResponse = await agent.invoke({
-            messages: convertToLangChainMessages(messages)
-        }, config);
+        // Create SSE response
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+            async start(controller) {
+                try {
+                    // Send initial response with thread info
+                    const initialData = {
+                        type: 'start',
+                        thread_id: threadId,
+                        is_new_thread: isNewThread
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
 
+                    // Stream agent response
+                    let currentContent = '';
+                    let allMessages: any[] = [];
 
-        // Convert agent response to the same format as conversation GET endpoint
-        const responseMessages = [];
+                    for await (const chunk of await agent.stream(
+                        {messages: convertToLangChainMessages(messages)},
+                        {streamMode: "updates", configurable: config['configurable']}
+                    )) {
+                        console.log("Received chunk:", chunk);
 
-        if (agentResponse && agentResponse.messages && agentResponse.messages.length > 0) {
-            for (const message of agentResponse.messages) {
-                let role = 'user';
-                let content = '';
-                let shouldInclude = true;
+                        // Process each node update
+                        for (const [, nodeData] of Object.entries(chunk)) {
+                            const data = nodeData as any;
 
-                // Handle different message formats and extract content safely
-                const messageContent = typeof message.content === 'string'
-                    ? message.content
-                    : Array.isArray(message.content)
-                        ? message.content.map(c => typeof c === 'string' ? c : JSON.stringify(c)).join(' ')
-                        : String(message.content || '');
+                            // Handle messages array
+                            if (data?.messages) {
+                                allMessages = data.messages;
 
-                // Handle different message formats
-                if (message.constructor.name === 'HumanMessage' || (message as any)._getType?.() === 'human') {
-                    role = 'user';
-                    content = messageContent;
-                } else if (message.constructor.name === 'AIMessage' || (message as any)._getType?.() === 'ai') {
-                    role = 'assistant';
-                    content = messageContent;
-                } else if (message.constructor.name === 'SystemMessage' || (message as any)._getType?.() === 'system') {
-                    shouldInclude = false; // Skip system messages
-                } else if ((message as any).type) {
-                    // Plain message objects
-                    switch ((message as any).type) {
-                        case 'human':
+                                // Find latest AI message
+                                const lastMessage = data.messages[data.messages.length - 1];
+                                if (lastMessage?._getType?.() === 'ai' ||
+                                    lastMessage?.constructor?.name === 'AIMessage') {
+
+                                    const content = String(lastMessage.content || '');
+                                    if (content && content !== currentContent) {
+                                        const delta = content.substring(currentContent.length);
+
+                                        if (delta) {
+                                            const streamData = {
+                                                type: 'delta',
+                                                content: delta,
+                                                role: 'assistant'
+                                            };
+                                            controller.enqueue(encoder.encode(
+                                                `data: ${JSON.stringify(streamData)}\n\n`
+                                            ));
+                                        }
+                                        currentContent = content;
+                                    }
+                                }
+                            }
+
+                            // Handle tool calls
+                            if (data?.messages) {
+                                const lastMsg = data.messages[data.messages.length - 1];
+                                if (lastMsg?.tool_calls?.length > 0) {
+                                    const toolData = {
+                                        type: 'tool_call',
+                                        message: 'Using tools to get current information...'
+                                    };
+                                    controller.enqueue(encoder.encode(
+                                        `data: ${JSON.stringify(toolData)}\n\n`
+                                    ));
+                                }
+                            }
+                        }
+                    }
+
+                    // Send final complete event
+                    const responseMessages = [];
+                    for (const message of allMessages) {
+                        let role = 'user';
+                        let content = '';
+                        let shouldInclude = true;
+
+                        const messageContent = String(message.content || '');
+
+                        if (message._getType?.() === 'human' ||
+                            message.constructor?.name === 'HumanMessage') {
                             role = 'user';
                             content = messageContent;
-                            break;
-                        case 'ai':
+                        } else if (message._getType?.() === 'ai' ||
+                                   message.constructor?.name === 'AIMessage') {
                             role = 'assistant';
                             content = messageContent;
-                            break;
-                        case 'system':
-                            shouldInclude = false; // Skip system messages
-                            break;
-                        default:
-                            shouldInclude = false; // Skip unknown message types
-                            break;
-                    }
-                } else if ((message as any).role) {
-                    // Already in the correct format
-                    switch ((message as any).role) {
-                        case 'user':
-                            role = 'user';
-                            content = messageContent;
-                            break;
-                        case 'assistant':
-                            role = 'assistant';
-                            content = messageContent;
-                            break;
-                        case 'system':
-                            shouldInclude = false; // Skip system messages
-                            break;
-                        default:
-                            shouldInclude = false; // Skip unknown roles
-                            break;
-                    }
-                } else {
-                    // Unknown message format, skip
-                    shouldInclude = false;
-                }
+                        } else {
+                            shouldInclude = false;
+                        }
 
-                // Only add human and AI messages to the response
-                if (shouldInclude && content.trim()) {
-                    responseMessages.push({
-                        role,
-                        content
-                    });
+                        if (shouldInclude && content.trim()) {
+                            responseMessages.push({ role, content });
+                        }
+                    }
+
+                    const finalData = {
+                        type: 'complete',
+                        thread_id: threadId,
+                        messages: responseMessages,
+                        total_messages: responseMessages.length,
+                        is_new_thread: isNewThread
+                    };
+                    controller.enqueue(encoder.encode(
+                        `data: ${JSON.stringify(finalData)}\n\n`
+                    ));
+
+                    // Close MCP client after streaming is complete
+                    if (client) {
+                        try {
+                            await client.close();
+                        } catch (closeError) {
+                            console.error('Error closing MCP client:', closeError);
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Stream error:', error);
+                    const errorData = {
+                        type: 'error',
+                        error: error.message
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+
+                    // Close client on error too
+                    if (client) {
+                        try {
+                            await client.close();
+                        } catch (closeError) {
+                            console.error('Error closing MCP client:', closeError);
+                        }
+                    }
+                } finally {
+                    controller.close();
                 }
             }
-        }
+        });
 
-        return NextResponse.json({
-            thread_id: threadId,
-            messages: responseMessages,
-            total_messages: responseMessages.length,
-            is_new_thread: isNewThread
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
         });
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-    } finally {
-        // Ensure client is always closed, even if there's an error
-        if (client) {
-            try {
-                await client.close();
-            } catch (closeError) {
-                console.error('Error closing MCP client:', closeError);
-            }
-        }
     }
 }
