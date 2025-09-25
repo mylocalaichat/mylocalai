@@ -7,6 +7,7 @@ import { loadMcpTools } from "@langchain/mcp-adapters";
 import { randomUUID } from "node:crypto";
 import { getCheckpointer } from "./lib/checkpointer";
 import { LangGraphRequestSchema, convertToLangChainMessages } from "./schemas";
+import { logger } from "../utils/logger";
 
 // Increase max listeners to prevent warnings during development
 process.setMaxListeners(20);
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
                         {messages: convertToLangChainMessages(messages)},
                         {streamMode: "updates", configurable: config['configurable']}
                     )) {
-                        console.log("Received chunk:", chunk);
+                        logger.debug("Received chunk:", chunk);
 
                         // Process each node update
                         for (const [, nodeData] of Object.entries(chunk)) {
@@ -194,12 +195,12 @@ export async function POST(req: NextRequest) {
                         try {
                             await client.close();
                         } catch (closeError) {
-                            console.error('Error closing MCP client:', closeError);
+                            logger.error('Error closing MCP client:', closeError);
                         }
                     }
 
                 } catch (error) {
-                    console.error('Stream error:', error);
+                    logger.error('Stream error:', error);
                     const errorData = {
                         type: 'error',
                         error: error.message
@@ -211,7 +212,7 @@ export async function POST(req: NextRequest) {
                         try {
                             await client.close();
                         } catch (closeError) {
-                            console.error('Error closing MCP client:', closeError);
+                            logger.error('Error closing MCP client:', closeError);
                         }
                     }
                 } finally {
@@ -228,7 +229,7 @@ export async function POST(req: NextRequest) {
             },
         });
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

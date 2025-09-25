@@ -5,6 +5,9 @@ const StatusBanner = () => {
   const [ollamaStatus, setOllamaStatus] = useState({
     connected: false,
     checking: true,
+    hasModel: false,
+    modelCount: 0,
+    models: [],
     lastChecked: null,
     error: null
   });
@@ -101,7 +104,7 @@ const StatusBanner = () => {
   const formatLastChecked = (date) => {
     if (!date) return '';
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
     const seconds = Math.floor(diff / 1000);
 
     if (seconds < 60) return `${seconds}s ago`;

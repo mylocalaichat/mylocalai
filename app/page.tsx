@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import ChatInterface from './components/ChatInterface';
+import MessageInput from './components/MessageInput';
 import ChatList from './components/ChatList';
 import StatusBanner from './components/StatusBanner';
 import { storageUtils } from './utils/localStorage';
+import { parseThinkingTags } from './utils/thinkingParser';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -12,12 +14,13 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [status, setStatus] = useState(null);
-  const [debugData, setDebugData] = useState(null);
+  const [currentThinking, setCurrentThinking] = useState('');
 
   // Initialize conversation on app load
   useEffect(() => {
     initializeConversation();
   }, []);
+
 
   const initializeConversation = async () => {
     try {
@@ -93,12 +96,27 @@ ${ollamaStatus.message}`;
         const data = await response.json();
         const langGraphMessages = data.messages || [];
 
-        const formattedMessages = langGraphMessages.map((msg, index) => ({
-          id: `${threadId}-${index}`,
-          text: msg.content,
-          sender: msg.role === 'user' ? 'user' : 'api',
-          timestamp: new Date()
-        }));
+        const formattedMessages = langGraphMessages.map((msg, index) => {
+          if (msg.role === 'user') {
+            // User messages don't have thinking content
+            return {
+              id: `${threadId}-${index}`,
+              text: msg.content,
+              sender: 'user',
+              timestamp: new Date()
+            };
+          } else {
+            // AI messages - parse thinking content
+            const { thinking, content } = parseThinkingTags(msg.content);
+            return {
+              id: `${threadId}-${index}`,
+              text: content,
+              thinking: thinking,
+              sender: 'api',
+              timestamp: new Date()
+            };
+          }
+        });
 
         setMessages(formattedMessages);
       } else {
@@ -114,12 +132,27 @@ ${ollamaStatus.message}`;
   const loadMessages = (convId) => {
     try {
       const dbMessages = storageUtils.getMessagesByConversation(convId);
-      const formattedMessages = dbMessages.map(msg => ({
-        id: msg.id,
-        text: msg.content,
-        sender: msg.sender,
-        timestamp: new Date(msg.timestamp)
-      }));
+      const formattedMessages = dbMessages.map(msg => {
+        if (msg.sender === 'user') {
+          // User messages don't have thinking content
+          return {
+            id: msg.id,
+            text: msg.content,
+            sender: msg.sender,
+            timestamp: new Date(msg.timestamp)
+          };
+        } else {
+          // AI messages - parse thinking content
+          const { thinking, content } = parseThinkingTags(msg.content);
+          return {
+            id: msg.id,
+            text: content,
+            thinking: thinking,
+            sender: msg.sender,
+            timestamp: new Date(msg.timestamp)
+          };
+        }
+      });
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -145,27 +178,11 @@ ${ollamaStatus.message}`;
     return process.env.NEXT_PUBLIC_OLLAMA_URL || process.env.OLLAMA_URL || 'http://localhost:11434';
   };
 
-  const addDebugEvent = (type, message, details = null, functionName = null, args = null) => {
-    setDebugData({
-      type,
-      message,
-      details,
-      functionName,
-      args,
-      timestamp: Date.now() // Add timestamp to force re-render
-    });
-  };
 
   const checkOllamaStatus = async () => {
     try {
       const ollamaUrl = getOllamaUrl();
 
-      // Log status check start
-      addDebugEvent('info', 'Checking Ollama status',
-        { url: `${ollamaUrl}/api/tags` },
-        'checkOllamaStatus',
-        { endpoint: 'api/tags' }
-      );
 
       // Check if Ollama is running
       const healthResponse = await fetch(`${ollamaUrl}/api/tags`, {
@@ -174,23 +191,12 @@ ${ollamaStatus.message}`;
       });
 
       if (!healthResponse.ok) {
-        addDebugEvent('error', 'Ollama status check failed',
-          { status: healthResponse.status, statusText: healthResponse.statusText },
-          'checkOllamaStatus',
-          { url: `${ollamaUrl}/api/tags` }
-        );
         throw new Error('Ollama service not responding');
       }
 
       const data = await healthResponse.json();
       const models = data.models || [];
 
-      // Log successful status check
-      addDebugEvent('success', 'Ollama status check successful',
-        { modelsFound: models.length, models: models.map(m => m.name) },
-        'checkOllamaStatus',
-        { availableModels: models.length }
-      );
 
       // Check if required model is available
       const requiredModel = 'qwen3:14b';
@@ -311,9 +317,14 @@ Please ensure Ollama is properly installed and running.`
         });
 
         // Add system prompt at the beginning with current date
-        const systemPrompt = `Current Date: Wednesday, September 24, 2025
+        const systemPrompt = `Current Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 
 You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
+
+THINKING PROCESS:
+- When you need to reason through a problem or plan your approach, wrap your internal reasoning in <think></think> tags
+- Your thinking will be displayed separately to help users understand your process
+- Example: <think>The user is asking about X, so I should first search for recent information about Y, then explain Z.</think>
 
 CORE BEHAVIORS:
 - Be conversational, friendly, and personable - like talking to a knowledgeable friend
@@ -345,9 +356,14 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         });
       } else {
         // Subsequent messages: Include system prompt to maintain tool awareness
-        const systemPrompt = `Current Date: Wednesday, September 24, 2025
+        const systemPrompt = `Current Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 
 You are an intelligent, helpful, and engaging AI assistant with access to real-time web search, web scraping, and other powerful tools. Your goal is to provide exceptional assistance that goes beyond static knowledge.
+
+THINKING PROCESS:
+- When you need to reason through a problem or plan your approach, wrap your internal reasoning in <think></think> tags
+- Your thinking will be displayed separately to help users understand your process
+- Example: <think>The user is asking about X, so I should first search for recent information about Y, then explain Z.</think>
 
 CORE BEHAVIORS:
 - Be conversational, friendly, and personable - like talking to a knowledgeable friend
@@ -388,12 +404,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       // Update status - calling LangGraph
       setStatus({ icon: '🤖', message: 'Processing with LangGraph agent', isLoading: true });
 
-      // Log API request
-      addDebugEvent('info', 'Making API call to LangGraph backend',
-        { url: '/langraph_backend', method: 'POST' },
-        'fetch',
-        { model: 'qwen3:14b', messageCount: conversationMessages.length }
-      );
 
       // Create SSE connection for streaming response
       const sseUrl = new URL('/langraph_backend', window.location.origin);
@@ -412,12 +422,6 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        addDebugEvent('error', `LangGraph request failed with status ${response.status}`,
-          { status: response.status, statusText: response.statusText, error: errorText },
-          'fetch',
-          { url: '/langraph_backend' }
-        );
         throw new Error(`LangGraph HTTP error! status: ${response.status}`);
       }
 
@@ -435,15 +439,10 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       let streamingMessageId = null;
 
       if (reader) {
-        // Add placeholder message for streaming
+
+
+        // Prepare streaming message ID but don't add empty message yet
         streamingMessageId = `${conversationId}-streaming-${Date.now()}`;
-        const streamingMessage = {
-          id: streamingMessageId,
-          text: '',
-          sender: 'api',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, streamingMessage]);
 
         try {
           while (true) {
@@ -470,11 +469,37 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
                     case 'delta':
                       // Update streaming content
                       responseText += eventData.content;
-                      setMessages(prev => prev.map(msg =>
-                        msg.id === streamingMessageId
-                          ? { ...msg, text: responseText }
-                          : msg
-                      ));
+
+                      // Parse thinking tags from the current response
+                      const { thinking, content } = parseThinkingTags(responseText);
+
+                      // Update thinking state if we have thinking content
+                      if (thinking) {
+                        setCurrentThinking(thinking);
+                      }
+
+                      // Create or update streaming message
+                      setMessages(prev => {
+                        const existingMessage = prev.find(msg => msg.id === streamingMessageId);
+                        if (existingMessage) {
+                          // Update existing message
+                          return prev.map(msg =>
+                            msg.id === streamingMessageId
+                              ? { ...msg, text: content, thinking: thinking }
+                              : msg
+                          );
+                        } else {
+                          // Create new streaming message
+                          const streamingMessage = {
+                            id: streamingMessageId,
+                            text: content,
+                            thinking: thinking,
+                            sender: 'api',
+                            timestamp: new Date()
+                          };
+                          return [...prev, streamingMessage];
+                        }
+                      });
                       break;
 
                     case 'tool_call':
@@ -515,31 +540,30 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
         responseText = 'No response received from LangGraph agent';
       }
 
-      // Log API response
-      addDebugEvent('success', 'LangGraph response received successfully',
-        {
-          responseLength: responseText.length,
-          threadId: langGraphData.thread_id,
-          isNewThread: langGraphData.is_new_thread,
-          totalMessages: langGraphData.total_messages || 0
-        },
-        'fetch',
-        { responseText: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : '') }
-      );
 
-      // Replace streaming message with final message
+      // Parse final response for thinking content
+      const { thinking: finalThinking, content: finalContent } = parseThinkingTags(responseText);
+
+
+      // Replace streaming message with final message including thinking content
       if (streamingMessageId) {
-        // Update the streaming message with final content
+        // Update the streaming message with final content and thinking
         setMessages(prev => prev.map(msg =>
           msg.id === streamingMessageId
-            ? { ...msg, text: responseText, id: `${conversationId}-${Date.now()}-response` }
+            ? {
+                ...msg,
+                text: finalContent,
+                thinking: finalThinking,
+                id: `${conversationId}-${Date.now()}-response`
+              }
             : msg
         ));
       } else {
         // Fallback: add as new message if streaming failed
         const apiMessage = {
           id: `${conversationId}-${Date.now()}-response`,
-          text: responseText,
+          text: finalContent,
+          thinking: finalThinking,
           sender: 'api',
           timestamp: new Date()
         };
@@ -594,6 +618,9 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
     try {
       setConversationId(convId);
 
+      // Clear thinking state when switching conversations
+      setCurrentThinking('');
+
       // Try to load from LangGraph first
       try {
         await loadMessagesFromLangGraph(convId);
@@ -610,6 +637,9 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
     try {
       setIsLoading(true);
       setConversationId(newConvId);
+
+      // Clear thinking state when starting new conversation
+      setCurrentThinking('');
 
       // For LangGraph conversations, we'll start with an empty messages array
       // The conversation will be created when the first message is sent
@@ -665,13 +695,20 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
             onToggleCollapse={handleToggleSidebar}
           />
           <div className="resize-handle"></div>
-          <ChatInterface
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            status={status}
-            debugData={debugData}
-            threadId={conversationId}
-          />
+          <div className="chat-area">
+            <ChatInterface
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              status={status}
+              threadId={conversationId}
+              thinking={currentThinking}
+            />
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              status={status}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </div>
     </div>

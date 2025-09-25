@@ -131,3 +131,17 @@ body {
     width: 100%;
   }
 }
+
+/* Chat area layout */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+  max-height: calc(100vh - 8rem);
+}
+
+.chat-area .chat-interface {
+  flex: 1;
+  margin-bottom: 0;
+}

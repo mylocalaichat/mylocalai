@@ -13,8 +13,11 @@ if (!fs.existsSync(logDir)) {
 const logFilePath = path.join(logDir, "google-search.log");
 
 // Create pino logger instance with simplified config for Next.js
+// Set log level based on NODE_ENV: error-only in production, info in development
+const logLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'error' : 'info');
+
 const logger = pino({
-    level: process.env.LOG_LEVEL || "info",
+    level: logLevel,
     formatters: {
         level(label) {
             return { level: label };

@@ -37,7 +37,7 @@ export const storageUtils = {
         ...conv,
         message_count: messages.length
       };
-    }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    }).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   },
 
   getConversationById: (id) => {
@@ -107,7 +107,7 @@ export const storageUtils = {
     const allMessages = storageUtils.getAllMessages();
     return allMessages
       .filter(msg => msg.conversation_id === conversationId)
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   },
 
   // Utility functions

@@ -37,7 +37,8 @@ const handler = createMcpHandler(
     // Updated basePath for flattened structure
     basePath: "/mcp_server",
     maxDuration: 60,
-    verboseLogs: true,
+    // Only enable verbose logs in development mode
+    verboseLogs: process.env.NODE_ENV !== 'production',
   }
 );
 export { handler as GET, handler as POST };

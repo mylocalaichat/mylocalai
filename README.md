@@ -65,8 +65,7 @@ ollama serve
 
 ### 4. Run the Application
 ```bash
-npm install
-npm run dev
+make prod
 ```
 
 ### 5. Open Browser
@@ -92,14 +91,6 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 - **SQLite Checkpointer** - Conversation persistence (@langchain/langgraph-checkpoint-sqlite ^0.2.1)
 
 ## Configuration
-
-### Environment Variables
-Create `.env.local`:
-```bash
-REACT_APP_OLLAMA_URL=http://localhost:11434
-PORT=3000
-NODE_ENV=development
-```
 
 ### Model Configuration
 Edit `app/page.tsx` to change the model:
@@ -127,13 +118,12 @@ const requiredModel = 'qwen3:14b';
 
 ## Development
 
-### Available Scripts
+### Available Commands
 ```bash
-npm run dev          # Development server with hot reload
-npm run build        # Production build
-npm run start        # Production server
-npm run lint         # ESLint code checking
-npm test             # Run test suite
+make prod            # Install, build, and start production server
+make dev             # Development server with hot reload
+make clean           # Clean build artifacts
+make help            # Show all available commands
 ```
 
 ### Project Structure

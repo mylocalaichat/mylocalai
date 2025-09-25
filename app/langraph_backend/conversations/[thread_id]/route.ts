@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCheckpointer } from "../../lib/checkpointer";
 import Database from 'better-sqlite3';
 import path from 'path';
+import { logger } from "../../../utils/logger";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ thread_id: string }> }) {
     try {
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ thre
         const messages = [];
         const langchainMessages = conversationState?.channel_values?.messages || [];
 
-        for (const message of langchainMessages) {
+        for (const message of (langchainMessages as any[])) {
             let role = 'user';
             let content = '';
             let shouldInclude = true;
@@ -103,7 +104,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ thre
             total_messages: messages.length
         });
     } catch (error) {
-        console.error('Error getting conversation:', error);
+        logger.error('Error getting conversation:', error);
         return NextResponse.json({ error: 'Failed to get conversation' }, { status: 500 });
     }
 }
@@ -161,7 +162,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
             }
 
         } catch (deleteError) {
-            console.error('Failed to delete conversation thread:', deleteError);
+            logger.error('Failed to delete conversation thread:', deleteError);
             throw new Error(`Failed to delete conversation: ${deleteError instanceof Error ? deleteError.message : 'Unknown error'}`);
         }
 
@@ -171,7 +172,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
         });
 
     } catch (error) {
-        console.error('Error deleting conversation:', error);
+        logger.error('Error deleting conversation:', error);
         return NextResponse.json({
             error: 'Failed to delete conversation',
             details: error instanceof Error ? error.message : 'Unknown error'

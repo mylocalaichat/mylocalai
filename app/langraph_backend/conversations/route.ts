@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCheckpointer } from "../lib/checkpointer";
+import { logger } from "../../utils/logger";
 
 export async function GET() {
     try {
@@ -10,7 +11,7 @@ export async function GET() {
         const threadMap = new Map();
 
         // List with no filter to get all threads
-        const checkpointGenerator = checkpointer.list({ limit: 1000 });
+        const checkpointGenerator = checkpointer.list({} as any);
 
         for await (const checkpoint of checkpointGenerator) {
             const threadId = checkpoint.config?.configurable?.thread_id;
@@ -21,8 +22,8 @@ export async function GET() {
             if (step > 0 && (!threadMap.has(threadId) || step < threadMap.get(threadId).step)) {
                 threadMap.set(threadId, {
                     thread_id: threadId,
-                    checkpoint_id: checkpoint.checkpoint?.id || checkpoint.checkpoint_id,
-                    created_at: checkpoint.metadata?.created_at || new Date().toISOString(),
+                    checkpoint_id: checkpoint.checkpoint?.id || (checkpoint as any).checkpoint_id,
+                    created_at: (checkpoint.metadata as any)?.created_at || new Date().toISOString(),
                     step: step,
                     checkpoint: checkpoint,
                     messages: checkpoint.checkpoint?.channel_values?.messages || []
@@ -68,7 +69,7 @@ export async function GET() {
 
         return NextResponse.json({ conversations });
     } catch (error) {
-        console.error('Error listing conversations:', error);
+        logger.error('Error listing conversations:', error);
         return NextResponse.json({
             error: 'Failed to list conversations',
             details: error.message
