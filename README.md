@@ -1,87 +1,223 @@
-# Local AI Chat
+# Local AI Chat with LangGraph & MCP Tools
 
-A React chat application that runs AI locally using Ollama. Open source and completely free. Using https://github.com/web-agent-master/google-search/tree/main to help google search
+A Next.js chat application powered by **LangGraph** with **MCP (Model Context Protocol)** tools for real-time web search and data access. Features **Server-Sent Events (SSE)** streaming for real-time AI responses. Completely local and open source.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=flat&logo=github)](https://github.com/mylocalaichat/mylocalai)
 
 **[🎥 Watch Demo](https://youtu.be/g14zgT6INoA)**
 
-## Philosophy
+## Architecture
 
-This application runs AI locally on your machine using Ollama. It's open source and completely free to use.
+### Core Components
+- **Next.js 15** - Modern React framework with App Router
+- **LangGraph** - AI agent framework for complex reasoning workflows
+- **MCP Tools** - Google search, web scraping, and data access tools
+- **SSE Streaming** - Real-time response streaming via Server-Sent Events
+- **Ollama** - Local LLM hosting (Qwen 3 14B recommended)
 
-- **Local**: Everything runs on your hardware
-- **Open Source**: Code is transparent and modifiable
-- **Cost-Free**: No subscriptions or API fees
-
-## Quick Start
-
-1. **Install Ollama**
-
-   Download and install Ollama from the official website:
-   - **macOS/Windows/Linux**: Visit [https://ollama.com](https://ollama.com) and download the installer for your operating system
-   - Follow the installation instructions for your platform
-
-2. **Install a model**
-   ```bash
-   ollama pull llama3.1:8b
-   ```
-
-3. **Run the application**
-   ```bash
-   npm install
-   npm start
-   ```
-
-4. **Open http://localhost:3000**
+### Data Flow
+```
+User Message → LangGraph Agent → MCP Tools (Web Search) → LLM → SSE Stream → UI
+```
 
 ## Features
 
-- ✅ Real-time chat with local AI
-- ✅ Conversation history
-- ✅ Multiple chat sessions
-- ✅ Ollama status monitoring
-- ✅ Privacy-focused (all data stays local)
+### 🚀 Advanced AI Capabilities
+- ✅ **LangGraph Agent** - Complex reasoning and tool usage
+- ✅ **Real-time Web Search** - Current information via Google Search
+- ✅ **Web Scraping** - Extract content from specific URLs
+- ✅ **SSE Streaming** - Real-time response updates
+- ✅ **Tool Call Visibility** - See when AI uses external tools
 
-## Requirements
+### 💬 Chat Interface
+- ✅ **Markdown Rendering** - Rich text responses with code highlighting
+- ✅ **Conversation History** - Persistent chat threads
+- ✅ **Multiple Sessions** - Manage multiple conversations
+- ✅ **Real-time Status** - Live updates during processing
 
-- **Hardware**: MacBook Pro or equivalent computer with sufficient RAM and processing power to run Llama3.1:8b locally
-- **Software**:
-  - Node.js (v19 or higher)
-  - Ollama installed locally
-- **Recommended**: 16GB+ RAM for optimal performance with Llama3.1:8b
+### 🔒 Privacy & Performance
+- ✅ **Completely Local** - AI runs on your hardware
+- ✅ **No API Keys Required** - Uses local Ollama instance
+- ✅ **Thread Management** - SQLite-based conversation storage
+- ✅ **Debug Mode** - Detailed logging and performance metrics
 
-## Supported Models
+## Quick Start
 
-Works with llama3.1:8b (recommended)
+### 1. Install Ollama
+```bash
+# macOS
+brew install ollama
+
+# Windows/Linux
+# Visit https://ollama.com for installer
+```
+
+### 2. Install Required Model
+```bash
+ollama pull qwen3:14b
+# Alternative: ollama pull llama3.1:8b
+```
+
+### 3. Start Ollama Service
+```bash
+ollama serve
+```
+
+### 4. Run the Application
+```bash
+make prod
+```
+
+### 5. Open Browser
+Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Technical Requirements
+
+### Hardware
+- **RAM**: 16GB+ (recommended for Qwen 3 14B)
+- **CPU**: Modern multi-core processor
+- **Storage**: 10GB+ free space for models
+
+### Software
+- **Node.js**: v18+ (v20+ recommended)
+- **Ollama**: Latest version
+- **Modern Browser**: Chrome, Firefox, Safari, Edge
+
+### Key Dependencies
+- **Next.js 15** - React framework with App Router
+- **LangGraph** - AI agent framework (@langchain/langgraph ^0.4.9)
+- **MCP SDK** - Model Context Protocol (@modelcontextprotocol/sdk ^1.18.1)
+- **Ollama LangChain** - Local LLM integration (@langchain/ollama ^0.2.4)
+- **SQLite Checkpointer** - Conversation persistence (@langchain/langgraph-checkpoint-sqlite ^0.2.1)
 
 ## Configuration
 
-Edit `.env.local` to customize:
-```bash
-REACT_APP_OLLAMA_URL=http://localhost:11434
-PORT=3000
+### Model Configuration
+Edit `app/page.tsx` to change the model:
+```typescript
+const requiredModel = 'qwen3:14b';
+// or 'llama3.1:8b', 'llama3.1:70b', etc.
 ```
 
-## Troubleshooting
+## MCP Tools Available
 
-**Ollama Not Connected?**
-- Ensure `ollama serve` is running
-- Check that port 11434 is not blocked
-- Verify models are installed with `ollama list`
+### Google Search (`google_search`)
+- **Purpose**: Get current information from web search
+- **Usage**: Automatically used for current events, facts, news
+- **Parameters**: `query` (string)
 
-**Performance Issues?**
-- Use smaller models like llama3.1:8b
-- Close other applications to free up memory
+### Web Scraper (`scrape`)
+- **Purpose**: Extract content from specific URLs
+- **Usage**: Get detailed information from websites
+- **Parameters**: `url` (string)
+
+### Dice Roller (`roll_dice`)
+- **Purpose**: Generate random numbers
+- **Usage**: Games, randomization, decision making
+- **Parameters**: `sides` (number), `count` (number)
 
 ## Development
 
+### Available Commands
 ```bash
-npm start       # Development server
-npm run build   # Production build
-npm test        # Run tests
+make prod            # Install, build, and start production server
+make dev             # Development server with hot reload
+make clean           # Clean build artifacts
+make help            # Show all available commands
 ```
+
+### Project Structure
+```
+app/
+├── components/           # React components
+│   ├── ChatInterface.tsx # Main chat UI
+│   ├── ChatList.tsx     # Conversation sidebar
+│   └── StatusBanner.tsx # Connection status indicator
+├── langraph_backend/    # LangGraph API routes
+│   ├── route.ts        # Main SSE streaming endpoint
+│   ├── schemas.ts      # Request/response validation
+│   ├── lib/            # Utilities and checkpointer
+│   └── conversations/  # Thread management API
+│       ├── route.ts    # List conversations
+│       └── [thread_id]/route.ts # Get/delete specific conversation
+├── mcp_server/         # MCP tool implementations
+│   ├── [transport]/    # MCP protocol handler
+│   │   └── route.ts    # Tool registration and routing
+│   ├── tools/         # Individual tool definitions
+│   │   ├── googleSearch.ts # Google search tool
+│   │   ├── scrape.ts   # Web scraping tool
+│   │   └── rollDice.ts # Random number generator
+│   ├── search/        # Google search implementation
+│   └── scrape/        # Web scraping implementation
+├── utils/             # Shared utilities
+│   └── localStorage.ts # Browser storage helpers
+├── layout.tsx         # Root layout component
+└── page.tsx           # Main chat page
+```
+
+### Adding New MCP Tools
+1. Create tool definition in `app/mcp_server/tools/`
+2. Register in `app/mcp_server/[transport]/route.ts`
+3. Tool will be automatically available to LangGraph agent
+
+## Troubleshooting
+
+### Ollama Issues
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# List installed models
+ollama list
+
+# Check model installation
+ollama pull qwen3:14b
+```
+
+### Performance Optimization
+- **Reduce Model Size**: Use `qwen3:7b` or `llama3.1:8b` for lower memory usage
+- **Close Applications**: Free up RAM for better model performance
+- **Check Resources**: Monitor CPU/RAM usage during chat
+
+### SSE Streaming Issues
+- Check browser console for connection errors
+- Verify LangGraph backend is running on port 3000
+- Ensure no firewall blocking Server-Sent Events
+
+### MCP Tool Errors
+- Verify MCP server is connected in logs
+- Check tool implementation in `app/mcp_server/tools/`
+- Ensure Google search API is accessible
+
+## API Endpoints
+
+### Chat Streaming
+- **POST** `/langraph_backend` - SSE streaming chat endpoint
+- **Headers**: `Content-Type: application/json`, `Accept: text/event-stream`
+
+### Conversation Management
+- **GET** `/langraph_backend/conversations` - List all conversations
+- **GET** `/langraph_backend/conversations/[id]` - Get specific conversation
+- **DELETE** `/langraph_backend/conversations/[id]` - Delete conversation
+
+### MCP Tools
+- **POST** `/mcp_server/mcp` - MCP protocol endpoint for tools
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Ollama](https://ollama.com) - Local LLM hosting
+- [LangGraph](https://langchain-ai.github.io/langgraph/) - AI agent framework
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Tool integration standard
+- [Next.js](https://nextjs.org/) - React framework
