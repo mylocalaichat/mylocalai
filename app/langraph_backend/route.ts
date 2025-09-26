@@ -86,6 +86,19 @@ export async function POST(req: NextRequest) {
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
             async start(controller) {
+                let isControllerClosed = false;
+
+                const safeEnqueue = (data: Uint8Array) => {
+                    if (!isControllerClosed) {
+                        try {
+                            controller.enqueue(data);
+                        } catch (error) {
+                            console.error('Controller enqueue error:', error);
+                            isControllerClosed = true;
+                        }
+                    }
+                };
+
                 try {
                     // Send initial response with thread info
                     const initialData = {
@@ -93,7 +106,7 @@ export async function POST(req: NextRequest) {
                         thread_id: threadId,
                         is_new_thread: isNewThread
                     };
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
 
                     // Stream agent response
                     let currentContent = '';
@@ -128,7 +141,7 @@ export async function POST(req: NextRequest) {
                                                 content: delta,
                                                 role: 'assistant'
                                             };
-                                            controller.enqueue(encoder.encode(
+                                            safeEnqueue(encoder.encode(
                                                 `data: ${JSON.stringify(streamData)}\n\n`
                                             ));
                                         }
@@ -145,7 +158,7 @@ export async function POST(req: NextRequest) {
                                         type: 'tool_call',
                                         message: 'Using tools to get current information...'
                                     };
-                                    controller.enqueue(encoder.encode(
+                                    safeEnqueue(encoder.encode(
                                         `data: ${JSON.stringify(toolData)}\n\n`
                                     ));
                                 }
@@ -186,7 +199,7 @@ export async function POST(req: NextRequest) {
                         total_messages: responseMessages.length,
                         is_new_thread: isNewThread
                     };
-                    controller.enqueue(encoder.encode(
+                    safeEnqueue(encoder.encode(
                         `data: ${JSON.stringify(finalData)}\n\n`
                     ));
 
@@ -205,7 +218,7 @@ export async function POST(req: NextRequest) {
                         type: 'error',
                         error: error.message
                     };
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
 
                     // Close client on error too
                     if (client) {
@@ -216,7 +229,10 @@ export async function POST(req: NextRequest) {
                         }
                     }
                 } finally {
-                    controller.close();
+                    if (!isControllerClosed) {
+                        isControllerClosed = true;
+                        controller.close();
+                    }
                 }
             }
         });

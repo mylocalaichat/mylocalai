@@ -1,17 +1,36 @@
 // Browser storage utility for MyLocalAI chat application
 // Replaces PostgreSQL database with localStorage
+
+interface Conversation {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+}
+
+interface ConversationWithMessages extends Conversation {
+  messages: Message[];
+}
+
+interface Message {
+  id: string;
+  conversation_id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  created_at: string;
+}
+
 const STORAGE_KEYS = {
   CONVERSATIONS: 'mylocalai_conversations',
-  MESSAGES: 'mylocalai_messages',
-  CONVERSATION_COUNTER: 'mylocalai_conversation_counter'
+  MESSAGES: 'mylocalai_messages'
 };
 
 export const storageUtils = {
   // Conversation operations
-  createConversation: () => {
+  createConversation: (): Conversation => {
     const conversations = storageUtils.getAllConversations();
-    const counter = localStorage.getItem(STORAGE_KEYS.CONVERSATION_COUNTER) || '0';
-    const newId = (parseInt(counter) + 1).toString();
+    const newId = crypto.randomUUID();
 
     const newConversation = {
       id: newId,
@@ -21,28 +40,27 @@ export const storageUtils = {
 
     conversations.push(newConversation);
     localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
-    localStorage.setItem(STORAGE_KEYS.CONVERSATION_COUNTER, newId);
 
     return newConversation;
   },
 
-  getAllConversations: () => {
+  getAllConversations: (): Conversation[] => {
     const stored = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
     const conversations = stored ? JSON.parse(stored) : [];
 
     // Add message counts
-    return conversations.map(conv => {
+    return conversations.map((conv: Conversation) => {
       const messages = storageUtils.getMessagesByConversation(conv.id);
       return {
         ...conv,
         message_count: messages.length
       };
-    }).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }).sort((a: Conversation, b: Conversation) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   },
 
-  getConversationById: (id) => {
+  getConversationById: (id: string): ConversationWithMessages | null => {
     const conversations = storageUtils.getAllConversations();
-    const conversation = conversations.find(conv => conv.id === id);
+    const conversation = conversations.find((conv: Conversation) => conv.id === id);
 
     if (!conversation) return null;
 
@@ -53,9 +71,9 @@ export const storageUtils = {
     };
   },
 
-  updateConversationTimestamp: (id) => {
+  updateConversationTimestamp: (id: string): void => {
     const conversations = storageUtils.getAllConversations();
-    const index = conversations.findIndex(conv => conv.id === id);
+    const index = conversations.findIndex((conv: Conversation) => conv.id === id);
 
     if (index !== -1) {
       conversations[index].updated_at = new Date().toISOString();
@@ -63,20 +81,20 @@ export const storageUtils = {
     }
   },
 
-  deleteConversation: (id) => {
+  deleteConversation: (id: string): void => {
     // Remove conversation
     const conversations = storageUtils.getAllConversations();
-    const filteredConversations = conversations.filter(conv => conv.id !== id);
+    const filteredConversations = conversations.filter((conv: Conversation) => conv.id !== id);
     localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(filteredConversations));
 
     // Remove all messages for this conversation
     const allMessages = storageUtils.getAllMessages();
-    const filteredMessages = allMessages.filter(msg => msg.conversation_id !== id);
+    const filteredMessages = allMessages.filter((msg: Message) => msg.conversation_id !== id);
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(filteredMessages));
   },
 
   // Message operations
-  addMessage: (conversationId, content, sender) => {
+  addMessage: (conversationId: string, content: string, sender: string): Message => {
     const messages = storageUtils.getAllMessages();
     const messageId = Date.now().toString();
 
@@ -98,33 +116,32 @@ export const storageUtils = {
     return newMessage;
   },
 
-  getAllMessages: () => {
+  getAllMessages: (): Message[] => {
     const stored = localStorage.getItem(STORAGE_KEYS.MESSAGES);
     return stored ? JSON.parse(stored) : [];
   },
 
-  getMessagesByConversation: (conversationId) => {
+  getMessagesByConversation: (conversationId: string): Message[] => {
     const allMessages = storageUtils.getAllMessages();
     return allMessages
-      .filter(msg => msg.conversation_id === conversationId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      .filter((msg: Message) => msg.conversation_id === conversationId)
+      .sort((a: Message, b: Message) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   },
 
   // Utility functions
-  clearAllData: () => {
+  clearAllData: (): void => {
     localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
     localStorage.removeItem(STORAGE_KEYS.MESSAGES);
-    localStorage.removeItem(STORAGE_KEYS.CONVERSATION_COUNTER);
   },
 
-  exportData: () => {
+  exportData: (): { conversations: Conversation[], messages: Message[] } => {
     return {
       conversations: storageUtils.getAllConversations(),
       messages: storageUtils.getAllMessages()
     };
   },
 
-  importData: (data) => {
+  importData: (data: { conversations?: Conversation[], messages?: Message[] }): void => {
     if (data.conversations) {
       localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(data.conversations));
     }

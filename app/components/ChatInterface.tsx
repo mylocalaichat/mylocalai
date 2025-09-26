@@ -111,7 +111,7 @@ const ChatInterface = ({ messages, onSendMessage, status, threadId, thinking }) 
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({node, inline, className, children, ...props}) {
+                      code({node, inline, className, children, ...props}: any) {
                         return inline ? (
                           <code className="inline-code" {...props}>
                             {children}
@@ -124,8 +124,11 @@ const ChatInterface = ({ messages, onSendMessage, status, threadId, thinking }) 
                           </pre>
                         )
                       },
+                      pre({children, ...props}: any) {
+                        return <div className="code-block-wrapper" {...props}>{children}</div>
+                      },
                       // Customize links to open in new tab
-                      a({href, children, ...props}) {
+                      a({href, children, ...props}: any) {
                         return (
                           <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
                             {children}

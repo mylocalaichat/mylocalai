@@ -367,8 +367,12 @@
   font-style: italic;
 }
 
-.message-content.markdown .code-block {
+.message-content.markdown .code-block-wrapper {
   margin: 1em 0;
+}
+
+.message-content.markdown .code-block {
+  margin: 0;
   padding: 1em;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--glass-border);
