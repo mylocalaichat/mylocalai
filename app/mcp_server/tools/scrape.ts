@@ -18,6 +18,14 @@ export const scrapeTool = {
     saveToFile?: boolean;
     outputPath?: string;
   }) => {
+    console.log(`🔍 MCP Tool Called: scrape_url`);
+    console.log(`📝 Parameters:`, {
+      url,
+      options,
+      saveToFile,
+      outputPath
+    });
+
     try {
       const scrapeOptions = {
         timeout: options.timeout || 60000,

@@ -3,38 +3,45 @@ import { googleSearch, getGoogleSearchPageHtml } from "../search/search";
 
 export const googleSearchTool = {
   name: "google_search",
-  description: "Search Google and return parsed results or raw HTML",
+  description: "Search Google and return parsed results or raw HTML. Optionally scrape content from result URLs.",
   inputSchema: {
     query: z.string().min(1),
+    limit: z.number().min(1).max(20).optional().describe("Number of search results to return (1-20)"),
+    timeout: z.number().min(5000).max(120000).optional().describe("Browser timeout in milliseconds (5000-120000)"),
+    locale: z.string().optional().describe("Search result language/locale (e.g., 'en-US', 'zh-CN')"),
   },
-  handler: async ({ query, options = {}, returnHtml = false, saveToFile = false, outputPath }: {
+  handler: async ({
+    query,
+    limit = 10,
+    timeout = 60000,
+    locale = 'en-US'
+  }: {
     query: string;
-    options?: {
-      limit?: number;
-      timeout?: number;
-      locale?: string;
-      stateFile?: string;
-      noSaveState?: boolean;
-    };
-    returnHtml?: boolean;
-    saveToFile?: boolean;
-    outputPath?: string;
+    limit?: number;
+    timeout?: number;
+    locale?: string;
   }) => {
+    console.log(`🔍 MCP Tool Called: google_search`);
+    console.log(`📝 Parameters:`, {
+      query,
+      limit,
+      timeout,
+      locale
+    });
+
     try {
       const searchOptions = {
-        limit: options.limit || 10,
-        timeout: options.timeout || 60000,
-        locale: options.locale || 'en-US',
-        stateFile: options.stateFile || './storage/browser-state.json',
-        noSaveState: options.noSaveState || false,
+        limit,
+        timeout,
+        locale,
+        stateFile: './storage/browser-state.json',
+        noSaveState: false,
+        enableScraping: false,
+        maxScrapingConcurrency: 3,
+        scrapingTimeout: 10000,
       };
 
-      let result;
-      if (returnHtml) {
-        result = await getGoogleSearchPageHtml(query, searchOptions, saveToFile, outputPath);
-      } else {
-        result = await googleSearch(query, searchOptions);
-      }
+      const result = await googleSearch(query, searchOptions);
 
       return {
         content: [{

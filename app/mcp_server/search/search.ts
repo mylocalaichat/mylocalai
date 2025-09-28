@@ -5,6 +5,7 @@ import * as path from "path";
 import * as os from "os";
 import logger from "./logger.js";
 import { url } from "inspector";
+import { scrapeUrls } from "./scraper.js";
 
 // Fingerprint configuration interface
 interface FingerprintConfig {
@@ -923,6 +924,37 @@ export async function googleSearch(
       }, limit); // Pass limit to evaluate function
 
       logger.info({ count: results.length }, "Successfully obtained search results");
+
+      // Scrape content from search result URLs if enabled
+      if (options.enableScraping && results.length > 0) {
+        logger.info("Starting content scraping for search results");
+
+        const {
+          maxScrapingConcurrency = 3,
+          scrapingTimeout = 10000
+        } = options;
+
+        const urls = results.map(result => result.link);
+        const scrapedContents = await scrapeUrls(urls, maxScrapingConcurrency, scrapingTimeout);
+
+        // Merge scraped content with search results
+        results = results.map((result, index) => {
+          const scrapedContent = scrapedContents[index];
+          return {
+            ...result,
+            content: scrapedContent.content,
+            contentError: scrapedContent.error,
+            contentLength: scrapedContent.contentLength
+          };
+        });
+
+        const successfulScrapes = scrapedContents.filter(content => !content.error).length;
+        logger.info({
+          totalUrls: urls.length,
+          successful: successfulScrapes,
+          failed: urls.length - successfulScrapes
+        }, "Content scraping completed");
+      }
 
       try {
         // Save browser state (unless user specified not to save)
