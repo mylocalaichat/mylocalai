@@ -95,6 +95,11 @@ const ChatInterface = ({ messages, onSendMessage, status, threadId, thinking }) 
                 <div className="thinking-header">
                   <span className="thinking-icon">🤔</span>
                   <span className="thinking-title">AI was thinking...</span>
+                  {message.responseTime && (
+                    <div className="response-time">
+                      ⏱️ {message.responseTime}s
+                    </div>
+                  )}
                 </div>
                 <div className="thinking-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -139,6 +144,11 @@ const ChatInterface = ({ messages, onSendMessage, status, threadId, thinking }) 
                   >
                     {message.text}
                   </ReactMarkdown>
+                  {message.sender === 'api' && message.responseTime && (
+                    <div className="response-time">
+                      ⏱️ {message.responseTime}s
+                    </div>
+                  )}
                 </div>
               </div>
             )}

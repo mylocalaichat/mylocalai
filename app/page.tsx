@@ -199,7 +199,7 @@ ${ollamaStatus.message}`;
 
 
       // Check if required model is available
-      const requiredModel = 'qwen3:14b';
+      const requiredModel = 'qwen3:4b';
       const hasRequiredModel = models.some(model =>
         model.name === requiredModel || model.name.startsWith('llama3.1')
       );
@@ -226,7 +226,7 @@ ollama serve
 
 **Then install the required model:**
 \`\`\`bash
-ollama pull qwen3:14b
+ollama pull qwen3:4b
 \`\`\`
 
 **Check if it's running:**
@@ -242,11 +242,11 @@ Make sure Ollama is running on ${ollamaUrl}`
           error: 'Model not found',
           message: `🤖 **Model Not Available**
 
-The required model (qwen3:14b) is not installed.
+The required model (qwen3:4b) is not installed.
 
 **Install the model:**
 \`\`\`bash
-ollama pull qwen3:14b
+ollama pull qwen3:4b
 \`\`\`
 
 **Alternative models you can try:**
@@ -277,6 +277,8 @@ Please ensure Ollama is properly installed and running.`
       console.error('No conversation ID available');
       return;
     }
+
+    const startTime = Date.now(); // Track start time for response timing
 
     try {
       // Set initial status
@@ -340,6 +342,7 @@ TOOL USAGE (CRITICAL - ABSOLUTELY MANDATORY):
 - **When asked "who is the current..."** ALWAYS use google_search tool first
 - **Never claim to search without actually using the google_search tool**
 - If unsure whether to search: SEARCH. Better to search unnecessarily than give wrong info
+- **enableScraping parameter**: Use sparingly! Only set to true when you need to dive deep into specific page content. Default should be false for basic searches.
 
 RESPONSE STYLE:
 - Start responses naturally, don't announce tool usage unless explaining why
@@ -379,6 +382,7 @@ TOOL USAGE (CRITICAL - ABSOLUTELY MANDATORY):
 - **When asked "who is the current..."** ALWAYS use google_search tool first
 - **Never claim to search without actually using the google_search tool**
 - If unsure whether to search: SEARCH. Better to search unnecessarily than give wrong info
+- **enableScraping parameter**: Use sparingly! Only set to true when you need to dive deep into specific page content. Default should be false for basic searches.
 
 RESPONSE STYLE:
 - Start responses naturally, don't announce tool usage unless explaining why
@@ -415,7 +419,7 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
           'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
-          model: 'qwen3:14b',
+          model: 'qwen3:4b',
           messages: conversationMessages,
           thread_id: conversationId
         })
@@ -544,8 +548,11 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
       // Parse final response for thinking content
       const { thinking: finalThinking, content: finalContent } = parseThinkingTags(responseText);
 
+      // Calculate response time
+      const endTime = Date.now();
+      const responseTime = ((endTime - startTime) / 1000).toFixed(1); // Convert to seconds with 1 decimal
 
-      // Replace streaming message with final message including thinking content
+      // Replace streaming message with final message including thinking content and response time
       if (streamingMessageId) {
         // Update the streaming message with final content and thinking
         setMessages(prev => prev.map(msg =>
@@ -554,6 +561,7 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
                 ...msg,
                 text: finalContent,
                 thinking: finalThinking,
+                responseTime: responseTime,
                 id: `${conversationId}-${Date.now()}-response`
               }
             : msg
@@ -564,6 +572,7 @@ Remember: Your tools give you superpowers - use them! Users expect current, accu
           id: `${conversationId}-${Date.now()}-response`,
           text: finalContent,
           thinking: finalThinking,
+          responseTime: responseTime,
           sender: 'api',
           timestamp: new Date()
         };

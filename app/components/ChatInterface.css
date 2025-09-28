@@ -1023,6 +1023,16 @@
   margin-bottom: 0;
 }
 
+/* Response time display */
+.response-time {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: right;
+  margin-top: 8px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
 /* Update chat header to handle flexbox layout */
 .chat-header {
   padding: 0.75rem 1rem;

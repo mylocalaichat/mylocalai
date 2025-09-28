@@ -5,6 +5,9 @@ export interface SearchResult {
     title: string;
     link: string;
     snippet: string;
+    content?: string; // Scraped text content from the URL
+    contentError?: string; // Error message if scraping failed
+    contentLength?: number; // Length of scraped content
 }
 
 /**
@@ -25,6 +28,9 @@ export interface CommandOptions {
     stateFile?: string;
     noSaveState?: boolean;
     locale?: string; // Search result language, default is Chinese (zh-CN)
+    enableScraping?: boolean; // Whether to scrape content from search result URLs
+    maxScrapingConcurrency?: number; // Maximum concurrent scraping requests
+    scrapingTimeout?: number; // Timeout for individual scraping requests in milliseconds
 }
 
 /**

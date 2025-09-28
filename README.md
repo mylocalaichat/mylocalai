@@ -54,8 +54,8 @@ brew install ollama
 
 ### 2. Install Required Model
 ```bash
-ollama pull qwen3:14b
-# Alternative: ollama pull llama3.1:8b
+ollama pull qwen3:4b
+# Alternative: ollama pull qwen3:4b
 ```
 
 ### 3. Start Ollama Service
@@ -95,8 +95,8 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 ### Model Configuration
 Edit `app/page.tsx` to change the model:
 ```typescript
-const requiredModel = 'qwen3:14b';
-// or 'llama3.1:8b', 'llama3.1:70b', etc.
+const requiredModel = 'qwen3:4b';
+// or 'qwen3:4b', 'llama3.1:70b', etc.
 ```
 
 ## MCP Tools Available
@@ -171,11 +171,11 @@ curl http://localhost:11434/api/tags
 ollama list
 
 # Check model installation
-ollama pull qwen3:14b
+ollama pull qwen3:4b
 ```
 
 ### Performance Optimization
-- **Reduce Model Size**: Use `qwen3:7b` or `llama3.1:8b` for lower memory usage
+- **Reduce Model Size**: Use `qwen3:7b` or `qwen3:4b` for lower memory usage
 - **Close Applications**: Free up RAM for better model performance
 - **Check Resources**: Monitor CPU/RAM usage during chat
 
