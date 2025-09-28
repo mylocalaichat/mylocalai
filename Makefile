@@ -1,6 +1,6 @@
 # Makefile for mylocalai Next.js app
 
-.PHONY: dev build start prod install clean modelinspector help
+.PHONY: dev build start prod install clean storage modelinspector help
 
 # Default target - clean, install, and start Next.js in dev mode
 dev: clean
@@ -20,7 +20,12 @@ start:
 	NODE_ENV=production npm run start
 
 # Build and start production (complete prod workflow)
-prod: install build start
+prod: install storage build start
+
+# Create storage directory
+storage:
+	@echo "Creating storage directory..."
+	mkdir -p storage
 
 # Install dependencies only
 install:
@@ -43,8 +48,9 @@ help:
 	@echo "  make dev           - Clean, install, and start development server"
 	@echo "  make build         - Build for production"
 	@echo "  make start         - Start production server"
-	@echo "  make prod          - Install, build, and start production server"
+	@echo "  make prod          - Install, create storage, build, and start production server"
 	@echo "  make install       - Install npm dependencies"
+	@echo "  make storage       - Create storage directory"
 	@echo "  make clean         - Clean build artifacts"
 	@echo "  make modelinspector - Launch MCP Model Inspector"
 	@echo "  make help          - Show this help message"
